@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Memory TV</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="view-tv" class="hidden">
+        <h1>MEMORIA - TABLERO</h1>
+        <div id="board" class="grid-board"></div>
+    </div>
+
+    <div id="view-mobile" class="hidden">
+        <h2>TU TURNO</h2>
+        <p>Selecciona una coordenada:</p>
+        <div id="controls" class="mobile-controls"></div>
+        <button onclick="resetGame()" style="margin-top:20px">Reiniciar Juego</button>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        
+        if (isMobile) {
+            document.getElementById('view-mobile').classList.remove('hidden');
+        } else {
+            document.getElementById('view-tv').classList.remove('hidden');
+        }
+
+        socket.on('updateBoard', (cards) => {
+            if (isMobile) {
+                renderMobile(cards);
+            } else {
+                renderTV(cards);
+            }
+        });
+
+        function renderTV(cards) {
+            const board = document.getElementById('board');
+            board.innerHTML = '';
+            // Añadir etiquetas de columnas A, B, C, D
+            board.innerHTML += `<div></div><div class="label">A</div><div class="label">B</div><div class="label">C</div><div class="label">D</div>`;
+            
+            let currentRow = 1;
+            board.innerHTML += `<div class="label">1</div>`; // Primera etiqueta de fila
+
+            cards.forEach((card, index) => {
+                const cardHtml = `
+                    <div class="card ${card.isFlipped ? 'flipped' : ''} ${card.isMatched ? 'matched' : ''}">
+                        <div class="card-inner">
+                            <div class="card-front">?</div>
+                            <div class="card-back" style="background-image: url('${card.url}')"></div>
+                        </div>
+                    </div>
+                `;
+                board.innerHTML += cardHtml;
+                
+                // Salto de fila para etiquetas
+                if ((index + 1) % 4 === 0 && index < 15) {
+                    currentRow++;
+                    board.innerHTML += `<div class="label">${currentRow}</div>`;
+                }
+            });
+        }
+
+        function renderMobile(cards) {
+            const controls = document.getElementById('controls');
+            controls.innerHTML = '';
+            cards.forEach(card => {
+                const btn = document.createElement('button');
+                btn.innerText = card.coord;
+                btn.disabled = card.isFlipped || card.isMatched;
+                btn.className = "coord-btn";
+                btn.onclick = () => socket.emit('flipCard', card.coord);
+                controls.appendChild(btn);
+            });
+        }
+
+        function resetGame() { socket.emit('resetGame'); }
+    </script>
+</body>
+</html>
