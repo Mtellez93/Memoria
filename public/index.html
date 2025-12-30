@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Memoria</title>
+    <title>Memoria TV - Juego</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -63,6 +63,8 @@
         socket.on('gameUpdate', (state) => {
             if (!state.gameStarted) {
                 document.getElementById('setup-menu').classList.remove('hidden');
+                document.getElementById('view-tv').classList.add('hidden');
+                document.getElementById('view-mobile').classList.add('hidden');
                 return;
             }
             
@@ -116,16 +118,24 @@
             const controls = document.getElementById('controls');
             controls.innerHTML = '';
             
-            state.cards.forEach(card => {
-                // CAMBIO CLAVE: Si la carta ya tiene par (isMatched), no creamos el botón
-                if (card.isMatched) return; 
+            // Configurar el grid del móvil dinámicamente según la cantidad de columnas
+            controls.style.gridTemplateColumns = `repeat(${state.config.cols}, 1fr)`;
 
+            state.cards.forEach(card => {
                 const btn = document.createElement('button');
                 btn.innerText = card.coord;
                 btn.className = "coord-btn";
-                // El botón solo se bloquea si la carta está volteada momentáneamente
-                btn.disabled = card.isFlipped || !state.canPlay;
-                btn.onclick = () => socket.emit('flipCard', card.coord);
+                
+                if (card.isMatched) {
+                    // Si ya se encontró el par, el botón se vuelve invisible 
+                    // pero sigue ocupando su espacio original
+                    btn.classList.add('invisible-btn');
+                    btn.disabled = true;
+                } else {
+                    btn.disabled = card.isFlipped || !state.canPlay;
+                    btn.onclick = () => socket.emit('flipCard', card.coord);
+                }
+                
                 controls.appendChild(btn);
             });
         }
