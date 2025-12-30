@@ -13,7 +13,7 @@ let gameState = {
     cards: [],
     selectedCards: [],
     canPlay: false,
-    players: [], // { id, name, score }
+    players: [],
     currentPlayerIndex: 0,
     gameStarted: false,
     config: { rows: 4, cols: 4 }
@@ -24,14 +24,15 @@ async function initGame(rows, cols, numPlayers) {
         const res = await axios.get(CSV_URL);
         const rowsCSV = res.data.split('\n').slice(1);
         let allImages = rowsCSV.map(r => {
-            const [id, url] = r.split(',');
-            return { id: id.trim(), url: url.trim() };
+            const data = r.split(',');
+            return { id: data[0].trim(), url: data[1].trim() };
         });
 
         const totalCards = rows * cols;
         const numPairs = totalCards / 2;
         
-        let selectedImages = allImages.slice(0, numPairs);
+        // Seleccionar imágenes aleatorias del pool y duplicarlas
+        let selectedImages = allImages.sort(() => Math.random() - 0.5).slice(0, numPairs);
         let deck = [...selectedImages, ...selectedImages].sort(() => Math.random() - 0.5);
 
         const colLabels = ['A', 'B', 'C', 'D', 'E', 'F'];
@@ -48,13 +49,16 @@ async function initGame(rows, cols, numPlayers) {
             score: 0
         }));
 
+        gameState.selectedCards = [];
         gameState.currentPlayerIndex = 0;
         gameState.gameStarted = true;
         gameState.canPlay = true;
         gameState.config = { rows, cols };
         
         io.emit('gameUpdate', gameState);
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+        console.error("Error cargando Google Sheets:", e); 
+    }
 }
 
 app.use(express.static('public'));
@@ -80,19 +84,19 @@ io.on('connection', (socket) => {
             const [c1, c2] = gameState.selectedCards;
 
             if (c1.id === c2.id) {
-                // Acierto: Punto para el jugador actual y sigue su turno
+                // ACIERTO
                 gameState.players[gameState.currentPlayerIndex].score++;
                 c1.isMatched = true;
                 c2.isMatched = true;
                 gameState.selectedCards = [];
                 gameState.canPlay = true;
                 io.emit('gameUpdate', gameState);
-                // Verificar si terminó el juego
+                
                 if (gameState.cards.every(c => c.isMatched)) {
                     io.emit('gameOver', gameState.players);
                 }
             } else {
-                // Fallo: Cambia el turno después de 2 segundos
+                // FALLO
                 setTimeout(() => {
                     c1.isFlipped = false;
                     c2.isFlipped = false;
@@ -104,6 +108,12 @@ io.on('connection', (socket) => {
             }
         }
     });
+
+    socket.on('requestReset', () => {
+        gameState.gameStarted = false;
+        io.emit('goToMenu');
+    });
 });
 
-server.listen(process.env.PORT || 3000);
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
