@@ -1,89 +1,116 @@
-/* Estilos Base */
+/* --- CONFIGURACIÓN BASE --- */
 body {
-    font-family: 'Arial', sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: #0f0f0f;
     color: white;
-    text-align: center;
     margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
 }
 
 .hidden { display: none !important; }
 
-/* Menú */
+/* --- MENÚ DE INICIO --- */
 .menu-container {
-    max-width: 400px;
-    margin: 50px auto;
-    padding: 30px;
     background: #1a1a1a;
-    border-radius: 15px;
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.7);
+    margin-top: 10vh;
+    width: 90%;
+    max-width: 420px;
+    text-align: center;
     border: 1px solid #333;
 }
 
-.option { margin-bottom: 20px; text-align: left; }
+.option {
+    margin: 25px 0;
+    text-align: left;
+}
+
+label { display: block; margin-bottom: 10px; color: #ffcc00; font-weight: bold; }
+
 select {
     width: 100%;
-    padding: 10px;
-    background: #333;
+    padding: 12px;
+    border-radius: 8px;
+    border: 2px solid #444;
+    background: #252525;
     color: white;
-    border: none;
-    border-radius: 5px;
+    font-size: 1rem;
+    outline: none;
 }
 
 .btn-start {
     width: 100%;
-    padding: 15px;
+    padding: 18px;
     background: #27ae60;
     color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     font-weight: bold;
+    font-size: 1.2rem;
     cursor: pointer;
+    transition: transform 0.2s, background 0.3s;
 }
 
-/* Marcador TV */
+.btn-start:hover { background: #2ecc71; transform: scale(1.02); }
+
+/* --- MARCADOR (TV) --- */
 .scoreboard {
     display: flex;
     justify-content: center;
     gap: 20px;
-    padding: 20px;
+    margin: 30px 0;
+    flex-wrap: wrap;
 }
 
 .player-pill {
-    padding: 10px 20px;
+    padding: 15px 30px;
     background: #222;
-    border-radius: 30px;
-    transition: all 0.3s ease;
+    border-radius: 50px;
+    font-size: 1.5rem;
+    border: 3px solid transparent;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .player-pill.active {
     background: #ffcc00;
     color: black;
-    transform: scale(1.1);
-    box-shadow: 0 0 15px rgba(255,204,0,0.5);
+    transform: scale(1.15);
+    border-color: white;
+    box-shadow: 0 0 25px rgba(255, 204, 0, 0.6);
 }
 
-/* Tablero TV */
+/* --- TABLERO (TV) --- */
 .grid-board {
     display: grid;
-    gap: 12px;
-    padding: 20px;
+    gap: 15px;
+    padding: 30px;
     justify-content: center;
-    margin: 0 auto;
+    align-items: center;
+    background: rgba(255,255,255,0.03);
+    border-radius: 20px;
+    margin-bottom: 50px;
 }
 
 .label-ref {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 1.8rem;
-    color: #ffcc00;
+    font-size: 2.2rem;
     font-weight: bold;
+    color: #ffcc00;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
 }
 
-/* Cartas */
+/* --- CARTAS --- */
 .card {
-    width: 110px;
-    height: 150px;
+    width: 120px;
+    height: 170px;
     perspective: 1000px;
 }
 
@@ -91,30 +118,41 @@ select {
     position: relative;
     width: 100%;
     height: 100%;
-    transition: transform 0.6s;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     transform-style: preserve-3d;
 }
 
-.card.flipped .card-inner { transform: rotateY(180deg); }
+.card.flipped .card-inner {
+    transform: rotateY(180deg);
+}
+
+/* Solo las cartas emparejadas pierden brillo */
+.card.matched {
+    opacity: 0.3;
+    filter: grayscale(80%);
+    transition: opacity 1s, filter 1s;
+}
 
 .card-front, .card-back {
     position: absolute;
     width: 100%;
     height: 100%;
     backface-visibility: hidden;
-    border-radius: 10px;
-    border: 2px solid white;
+    border-radius: 12px;
+    border: 2px solid #fff;
+    box-shadow: 0 8px 15px rgba(0,0,0,0.5);
 }
 
-/* Dorso de la carta: Solo imagen */
+/* DORSO DE LA CARTA: Imagen cover.jpg pura */
 .card-front {
     background-image: url('cover.jpg');
     background-size: cover;
     background-position: center;
+    background-repeat: no-repeat;
     background-color: #2c3e50;
 }
 
-/* Cara revelada */
+/* CARA DE LA IMAGEN (GOOGLE SHEETS) */
 .card-back {
     background-color: white;
     background-size: contain;
@@ -123,40 +161,66 @@ select {
     transform: rotateY(180deg);
 }
 
-.card.matched {
-    opacity: 0.3;
-    filter: grayscale(80%);
+/* --- CONTROL MÓVIL --- */
+#view-mobile {
+    width: 100%;
+    max-width: 450px;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
-/* Controles Celular */
+#turn-indicator h3 {
+    font-size: 1.6rem;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+}
+
 .mobile-controls {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    padding: 10px;
+    gap: 12px;
+    margin-bottom: 30px;
 }
 
 .coord-btn {
-    padding: 20px 5px;
+    padding: 22px 5px;
+    font-size: 1.2rem;
+    font-weight: bold;
     background: #333;
     color: white;
-    border: 1px solid #555;
-    border-radius: 5px;
-    font-weight: bold;
+    border: 2px solid #555;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.coord-btn:active { background: #555; transform: scale(0.95); }
+
+.coord-btn:disabled {
+    background: #111;
+    color: #444;
+    border-color: #222;
 }
 
 .btn-reset {
+    width: 100%;
+    padding: 15px;
     background: #c0392b;
     color: white;
     border: none;
-    padding: 15px;
-    margin-top: 20px;
-    width: 90%;
-    border-radius: 5px;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 1rem;
+    margin-top: 10px;
 }
 
-#turn-indicator h3 { margin-bottom: 20px; }
-
+/* --- AJUSTES DE PANTALLA --- */
 @media (max-width: 600px) {
-    .card { width: 70px; height: 100px; }
+    .card { width: 80px; height: 115px; }
+    .label-ref { font-size: 1.5rem; }
+    .grid-board { gap: 8px; padding: 15px; }
+}
+
+@media (min-width: 1200px) {
+    .card { width: 140px; height: 200px; }
 }
