@@ -148,7 +148,7 @@ select {
     background-size: cover;
     background-position: center;
     color: white;
-    text-shadow: 1px 1px 3px #000;
+    text-shadow: 0px 0px 0px #000;
 }
 
 /* Cara de la imagen (Google Sheets) */
