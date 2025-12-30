@@ -1,23 +1,25 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>Memory Game Master</title>
+    <meta charset="UTF-8">
+    <title>Juego de Memoria - TV & Móvil</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
     <div id="setup-menu" class="menu-container">
-        <h1>CONFIGURAR JUEGO</h1>
+        <h1>MEMORIA TV</h1>
         <div class="option">
             <label>Tamaño del Tablero:</label>
             <select id="grid-size">
-                <option value="4x4">4x4 (Pequeño - 8 pares)</option>
-                <option value="6x4">6x4 (Mediano - 12 pares)</option>
-                <option value="6x6">6x6 (Grande - 18 pares)</option>
+                <option value="4x4">4x4 (16 cartas - Pequeño)</option>
+                <option value="6x4">6x4 (24 cartas - Mediano)</option>
+                <option value="6x6">6x6 (36 cartas - Grande)</option>
             </select>
         </div>
         <div class="option">
-            <label>Jugadores:</label>
+            <label>Modo de Juego:</label>
             <select id="player-count">
                 <option value="1">1 Jugador (Solo)</option>
                 <option value="2">2 Jugadores</option>
@@ -25,7 +27,7 @@
                 <option value="4">4 Jugadores</option>
             </select>
         </div>
-        <button onclick="enviarConfiguracion()">EMPEZAR JUEGO</button>
+        <button class="btn-start" onclick="enviarConfiguracion()">EMPEZAR PARTIDA</button>
     </div>
 
     <div id="view-tv" class="hidden">
@@ -36,6 +38,7 @@
     <div id="view-mobile" class="hidden">
         <div id="turn-indicator"></div>
         <div id="controls" class="mobile-controls"></div>
+        <button class="btn-reset" onclick="resetearTodo()">Reiniciar Juego</button>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -44,13 +47,26 @@
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
         function enviarConfiguracion() {
-            const [cols, rows] = document.getElementById('grid-size').value.split('x');
+            const size = document.getElementById('grid-size').value.split('x');
             const players = document.getElementById('player-count').value;
-            socket.emit('startGame', { rows, cols, players });
+            socket.emit('startGame', { rows: size[1], cols: size[0], players: players });
         }
 
+        function resetearTodo() {
+            socket.emit('requestReset');
+        }
+
+        socket.on('goToMenu', () => {
+            window.location.reload();
+        });
+
         socket.on('gameUpdate', (state) => {
-            if (!state.gameStarted) return;
+            if (!state.gameStarted) {
+                document.getElementById('setup-menu').classList.remove('hidden');
+                document.getElementById('view-tv').classList.add('hidden');
+                document.getElementById('view-mobile').classList.add('hidden');
+                return;
+            }
             
             document.getElementById('setup-menu').classList.add('hidden');
             
@@ -67,28 +83,31 @@
             const board = document.getElementById('board');
             const scoreboard = document.getElementById('scoreboard');
             
-            // Render Puntos
+            // Render de Marcador
             scoreboard.innerHTML = state.players.map((p, i) => `
                 <div class="player-pill ${state.currentPlayerIndex === i ? 'active' : ''}">
                     ${p.name}: ${p.score}
                 </div>
             `).join('');
 
-            // Render Tablero
+            // Configurar Grid dinámico
             board.style.gridTemplateColumns = `50px repeat(${state.config.cols}, 1fr)`;
-            board.innerHTML = '<div></div>';
+            board.innerHTML = '<div></div>'; // Espacio esquina superior izquierda
+
+            // Etiquetas de Letras (Columnas)
             for(let i=0; i<state.config.cols; i++) {
-                board.innerHTML += `<div class="label">${String.fromCharCode(65+i)}</div>`;
+                board.innerHTML += `<div class="label-ref">${String.fromCharCode(65+i)}</div>`;
             }
 
+            // Cartas con etiquetas de Números (Filas)
             state.cards.forEach((card, index) => {
                 if (index % state.config.cols === 0) {
-                    board.innerHTML += `<div class="label">${Math.floor(index/state.config.cols)+1}</div>`;
+                    board.innerHTML += `<div class="label-ref">${Math.floor(index/state.config.cols)+1}</div>`;
                 }
                 board.innerHTML += `
                     <div class="card ${card.isFlipped ? 'flipped' : ''} ${card.isMatched ? 'matched' : ''}">
                         <div class="card-inner">
-                            <div class="card-front">?</div>
+                            <div class="card-front">${card.coord}</div>
                             <div class="card-back" style="background-image: url('${card.url}')"></div>
                         </div>
                     </div>`;
@@ -98,19 +117,26 @@
         function renderMobile(state) {
             const turnInd = document.getElementById('turn-indicator');
             const pActual = state.players[state.currentPlayerIndex];
-            turnInd.innerHTML = `<h3>Turno de: ${pActual.name}</h3>`;
+            turnInd.innerHTML = `<h3>Turno: <span style="color:#ffcc00">${pActual.name}</span></h3>`;
             
             const controls = document.getElementById('controls');
             controls.innerHTML = '';
+            
             state.cards.forEach(card => {
                 const btn = document.createElement('button');
                 btn.innerText = card.coord;
-                btn.disabled = card.isFlipped || card.isMatched || !state.canPlay;
                 btn.className = "coord-btn";
+                if (card.isFlipped || card.isMatched || !state.canPlay) {
+                    btn.disabled = true;
+                }
                 btn.onclick = () => socket.emit('flipCard', card.coord);
                 controls.appendChild(btn);
             });
         }
+
+        socket.on('gameOver', (players) => {
+            alert("¡Juego terminado! Revisen el marcador en la TV.");
+        });
     </script>
 </body>
 </html>
