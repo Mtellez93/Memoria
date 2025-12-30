@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Memoria TV - Juego</title>
+    <title>Memoria</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -90,12 +90,10 @@
             board.style.gridTemplateColumns = `50px repeat(${state.config.cols}, 1fr)`;
             board.innerHTML = '<div></div>'; 
 
-            // Etiquetas de Letras
             for(let i=0; i<state.config.cols; i++) {
                 board.innerHTML += `<div class="label-ref">${String.fromCharCode(65+i)}</div>`;
             }
 
-            // Cartas (Dorso sin texto)
             state.cards.forEach((card, index) => {
                 if (index % state.config.cols === 0) {
                     board.innerHTML += `<div class="label-ref">${Math.floor(index/state.config.cols)+1}</div>`;
@@ -119,10 +117,14 @@
             controls.innerHTML = '';
             
             state.cards.forEach(card => {
+                // CAMBIO CLAVE: Si la carta ya tiene par (isMatched), no creamos el botón
+                if (card.isMatched) return; 
+
                 const btn = document.createElement('button');
                 btn.innerText = card.coord;
                 btn.className = "coord-btn";
-                btn.disabled = card.isFlipped || card.isMatched || !state.canPlay;
+                // El botón solo se bloquea si la carta está volteada momentáneamente
+                btn.disabled = card.isFlipped || !state.canPlay;
                 btn.onclick = () => socket.emit('flipCard', card.coord);
                 controls.appendChild(btn);
             });
