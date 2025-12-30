@@ -1,84 +1,116 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Memory TV</title>
+    <title>Memory Game Master</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="setup-menu" class="menu-container">
+        <h1>CONFIGURAR JUEGO</h1>
+        <div class="option">
+            <label>Tamaño del Tablero:</label>
+            <select id="grid-size">
+                <option value="4x4">4x4 (Pequeño - 8 pares)</option>
+                <option value="6x4">6x4 (Mediano - 12 pares)</option>
+                <option value="6x6">6x6 (Grande - 18 pares)</option>
+            </select>
+        </div>
+        <div class="option">
+            <label>Jugadores:</label>
+            <select id="player-count">
+                <option value="1">1 Jugador (Solo)</option>
+                <option value="2">2 Jugadores</option>
+                <option value="3">3 Jugadores</option>
+                <option value="4">4 Jugadores</option>
+            </select>
+        </div>
+        <button onclick="enviarConfiguracion()">EMPEZAR JUEGO</button>
+    </div>
+
     <div id="view-tv" class="hidden">
-        <h1>MEMORIA - TABLERO</h1>
+        <div id="scoreboard" class="scoreboard"></div>
         <div id="board" class="grid-board"></div>
     </div>
 
     <div id="view-mobile" class="hidden">
-        <h2>TU TURNO</h2>
-        <p>Selecciona una coordenada:</p>
+        <div id="turn-indicator"></div>
         <div id="controls" class="mobile-controls"></div>
-        <button onclick="resetGame()" style="margin-top:20px">Reiniciar Juego</button>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        
-        if (isMobile) {
-            document.getElementById('view-mobile').classList.remove('hidden');
-        } else {
-            document.getElementById('view-tv').classList.remove('hidden');
+
+        function enviarConfiguracion() {
+            const [cols, rows] = document.getElementById('grid-size').value.split('x');
+            const players = document.getElementById('player-count').value;
+            socket.emit('startGame', { rows, cols, players });
         }
 
-        socket.on('updateBoard', (cards) => {
+        socket.on('gameUpdate', (state) => {
+            if (!state.gameStarted) return;
+            
+            document.getElementById('setup-menu').classList.add('hidden');
+            
             if (isMobile) {
-                renderMobile(cards);
+                document.getElementById('view-mobile').classList.remove('hidden');
+                renderMobile(state);
             } else {
-                renderTV(cards);
+                document.getElementById('view-tv').classList.remove('hidden');
+                renderTV(state);
             }
         });
 
-        function renderTV(cards) {
+        function renderTV(state) {
             const board = document.getElementById('board');
-            board.innerHTML = '';
-            // Añadir etiquetas de columnas A, B, C, D
-            board.innerHTML += `<div></div><div class="label">A</div><div class="label">B</div><div class="label">C</div><div class="label">D</div>`;
+            const scoreboard = document.getElementById('scoreboard');
             
-            let currentRow = 1;
-            board.innerHTML += `<div class="label">1</div>`; // Primera etiqueta de fila
+            // Render Puntos
+            scoreboard.innerHTML = state.players.map((p, i) => `
+                <div class="player-pill ${state.currentPlayerIndex === i ? 'active' : ''}">
+                    ${p.name}: ${p.score}
+                </div>
+            `).join('');
 
-            cards.forEach((card, index) => {
-                const cardHtml = `
+            // Render Tablero
+            board.style.gridTemplateColumns = `50px repeat(${state.config.cols}, 1fr)`;
+            board.innerHTML = '<div></div>';
+            for(let i=0; i<state.config.cols; i++) {
+                board.innerHTML += `<div class="label">${String.fromCharCode(65+i)}</div>`;
+            }
+
+            state.cards.forEach((card, index) => {
+                if (index % state.config.cols === 0) {
+                    board.innerHTML += `<div class="label">${Math.floor(index/state.config.cols)+1}</div>`;
+                }
+                board.innerHTML += `
                     <div class="card ${card.isFlipped ? 'flipped' : ''} ${card.isMatched ? 'matched' : ''}">
                         <div class="card-inner">
                             <div class="card-front">?</div>
                             <div class="card-back" style="background-image: url('${card.url}')"></div>
                         </div>
-                    </div>
-                `;
-                board.innerHTML += cardHtml;
-                
-                // Salto de fila para etiquetas
-                if ((index + 1) % 4 === 0 && index < 15) {
-                    currentRow++;
-                    board.innerHTML += `<div class="label">${currentRow}</div>`;
-                }
+                    </div>`;
             });
         }
 
-        function renderMobile(cards) {
+        function renderMobile(state) {
+            const turnInd = document.getElementById('turn-indicator');
+            const pActual = state.players[state.currentPlayerIndex];
+            turnInd.innerHTML = `<h3>Turno de: ${pActual.name}</h3>`;
+            
             const controls = document.getElementById('controls');
             controls.innerHTML = '';
-            cards.forEach(card => {
+            state.cards.forEach(card => {
                 const btn = document.createElement('button');
                 btn.innerText = card.coord;
-                btn.disabled = card.isFlipped || card.isMatched;
+                btn.disabled = card.isFlipped || card.isMatched || !state.canPlay;
                 btn.className = "coord-btn";
                 btn.onclick = () => socket.emit('flipCard', card.coord);
                 controls.appendChild(btn);
             });
         }
-
-        function resetGame() { socket.emit('resetGame'); }
     </script>
 </body>
 </html>
