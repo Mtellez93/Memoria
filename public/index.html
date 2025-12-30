@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Juego de Memoria - TV & Móvil</title>
+    <title>Memoria TV - Juego</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -13,21 +13,21 @@
         <div class="option">
             <label>Tamaño del Tablero:</label>
             <select id="grid-size">
-                <option value="4x4">4x4 (16 cartas - Pequeño)</option>
-                <option value="6x4">6x4 (24 cartas - Mediano)</option>
-                <option value="6x6">6x6 (36 cartas - Grande)</option>
+                <option value="4x4">4x4 (16 cartas)</option>
+                <option value="6x4">6x4 (24 cartas)</option>
+                <option value="6x6">6x6 (36 cartas)</option>
             </select>
         </div>
         <div class="option">
-            <label>Modo de Juego:</label>
+            <label>Jugadores:</label>
             <select id="player-count">
-                <option value="1">1 Jugador (Solo)</option>
+                <option value="1">1 Jugador</option>
                 <option value="2">2 Jugadores</option>
                 <option value="3">3 Jugadores</option>
                 <option value="4">4 Jugadores</option>
             </select>
         </div>
-        <button class="btn-start" onclick="enviarConfiguracion()">EMPEZAR PARTIDA</button>
+        <button class="btn-start" onclick="enviarConfiguracion()">EMPEZAR JUEGO</button>
     </div>
 
     <div id="view-tv" class="hidden">
@@ -38,7 +38,7 @@
     <div id="view-mobile" class="hidden">
         <div id="turn-indicator"></div>
         <div id="controls" class="mobile-controls"></div>
-        <button class="btn-reset" onclick="resetearTodo()">Reiniciar Juego</button>
+        <button class="btn-reset" onclick="resetearTodo()">Reiniciar Todo</button>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -63,8 +63,6 @@
         socket.on('gameUpdate', (state) => {
             if (!state.gameStarted) {
                 document.getElementById('setup-menu').classList.remove('hidden');
-                document.getElementById('view-tv').classList.add('hidden');
-                document.getElementById('view-mobile').classList.add('hidden');
                 return;
             }
             
@@ -83,23 +81,21 @@
             const board = document.getElementById('board');
             const scoreboard = document.getElementById('scoreboard');
             
-            // Render de Marcador
             scoreboard.innerHTML = state.players.map((p, i) => `
                 <div class="player-pill ${state.currentPlayerIndex === i ? 'active' : ''}">
                     ${p.name}: ${p.score}
                 </div>
             `).join('');
 
-            // Configurar Grid dinámico
             board.style.gridTemplateColumns = `50px repeat(${state.config.cols}, 1fr)`;
-            board.innerHTML = '<div></div>'; // Espacio esquina superior izquierda
+            board.innerHTML = '<div></div>'; 
 
-            // Etiquetas de Letras (Columnas)
+            // Etiquetas de Letras
             for(let i=0; i<state.config.cols; i++) {
                 board.innerHTML += `<div class="label-ref">${String.fromCharCode(65+i)}</div>`;
             }
 
-            // Cartas con etiquetas de Números (Filas)
+            // Cartas (Dorso sin texto)
             state.cards.forEach((card, index) => {
                 if (index % state.config.cols === 0) {
                     board.innerHTML += `<div class="label-ref">${Math.floor(index/state.config.cols)+1}</div>`;
@@ -107,7 +103,7 @@
                 board.innerHTML += `
                     <div class="card ${card.isFlipped ? 'flipped' : ''} ${card.isMatched ? 'matched' : ''}">
                         <div class="card-inner">
-                            <div class="card-front">${card.coord}</div>
+                            <div class="card-front"></div> 
                             <div class="card-back" style="background-image: url('${card.url}')"></div>
                         </div>
                     </div>`;
@@ -126,16 +122,14 @@
                 const btn = document.createElement('button');
                 btn.innerText = card.coord;
                 btn.className = "coord-btn";
-                if (card.isFlipped || card.isMatched || !state.canPlay) {
-                    btn.disabled = true;
-                }
+                btn.disabled = card.isFlipped || card.isMatched || !state.canPlay;
                 btn.onclick = () => socket.emit('flipCard', card.coord);
                 controls.appendChild(btn);
             });
         }
 
         socket.on('gameOver', (players) => {
-            alert("¡Juego terminado! Revisen el marcador en la TV.");
+            alert("¡Fin del juego! Mira los resultados en la TV.");
         });
     </script>
 </body>
