@@ -9,7 +9,6 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    /* Forzamos a que el contenido ocupe exactamente el alto de la pantalla */
     height: 100vh; 
     width: 100vw;
     overflow: hidden; 
@@ -17,10 +16,10 @@ body {
 
 .hidden { display: none !important; }
 
-/* Menú Principal (Este sí puede tener scroll si el móvil es muy pequeño) */
+/* Menú Principal */
 .menu-container {
     background: #1a1a1a;
-    padding: 20px;
+    padding: 25px;
     border-radius: 15px;
     margin-top: 5vh;
     width: 90%;
@@ -29,21 +28,22 @@ body {
     border: 1px solid #333;
 }
 
-/* Marcador TV - Altura fija del 6% de la pantalla */
+/* Marcador TV - Reducimos su altura para darle más espacio al tablero */
 .scoreboard {
     display: flex;
     justify-content: center;
-    gap: 10px;
-    height: 6vh;
+    gap: 15px;
+    height: 8vh; /* Bajamos de 12vh a 8vh */
     align-items: center;
     width: 100%;
+    padding-top: 5px;
 }
 
 .player-pill {
-    padding: 0.8vh 1.5vw;
+    padding: 5px 20px;
     background: #222;
     border-radius: 50px;
-    font-size: 2.5vh; /* Fuente proporcional al alto */
+    font-size: 2.8vh; /* Texto un poco más grande */
     border: 2px solid transparent;
 }
 
@@ -51,17 +51,17 @@ body {
     background: #ffcc00;
     color: black;
     border-color: white;
-    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(255,204,0,0.4);
 }
 
-/* Tablero TV - Ocupa el 85% del alto restante */
+/* Tablero TV - Ahora ocupa el 90% del alto */
 .grid-board {
     display: grid;
-    gap: 1vh; /* Espacio proporcional al alto */
-    padding: 2vh;
-    background: rgba(255,255,255,0.03);
-    border-radius: 15px;
-    height: 85vh; 
+    gap: 0.5vh; /* ESPACIO MÍNIMO ENTRE CARTAS */
+    padding: 1vh;
+    background: rgba(255,255,255,0.02);
+    border-radius: 10px;
+    height: 90vh; 
     width: auto;
     margin: 0 auto;
 }
@@ -70,17 +70,22 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 2.5vh; /* Etiquetas proporcionales */
+    font-size: 2.5vh;
     font-weight: bold;
     color: #ffcc00;
 }
 
-/* CARTAS DINÁMICAS */
+/* CARTAS MAXIMIZADAS */
 .card {
-    /* El truco: altura basada en vh para que 6 cartas siempre quepan */
-    height: 11vh; 
-    aspect-ratio: 3 / 4; /* Mantiene la proporción de carta sin importar el ancho */
+    /* Calculamos para que 6 cartas ocupen casi todo el 90vh del tablero */
+    height: 13.5vh; 
+    aspect-ratio: 3 / 4; 
     perspective: 1000px;
+}
+
+/* Ajuste dinámico: Si solo hay 4 filas (4x4), las cartas pueden ser aún más grandes */
+.grid-board:not(:has(.card:nth-child(20))) .card {
+    height: 19vh; 
 }
 
 .card-inner {
@@ -98,8 +103,8 @@ body {
     width: 100%;
     height: 100%;
     backface-visibility: hidden;
-    border-radius: 0.5vh;
-    border: 1px solid #fff;
+    border-radius: 4px; /* Bordes más rectos para que se vean más juntas */
+    border: 1px solid rgba(255,255,255,0.5);
 }
 
 .card-front {
@@ -117,17 +122,11 @@ body {
 }
 
 .card.matched {
-    opacity: 0.2;
+    opacity: 0.15;
     filter: grayscale(100%);
 }
 
-/* Ajuste específico para el modo de 4 filas vs 6 filas */
-/* Si el tablero es 6x6, reducimos un poco el tamaño para que respire */
-.grid-board:has(.card:nth-child(20)) .card {
-    height: 10vh;
-}
-
-/* Control Móvil - Aquí sí permitimos scroll */
+/* --- MÓVIL (Se mantiene funcional) --- */
 #view-mobile {
     width: 100%;
     max-width: 500px;
@@ -140,18 +139,17 @@ body {
 
 .mobile-controls {
     display: grid;
-    gap: 8px;
-    width: 100%;
+    gap: 5px;
 }
 
 .coord-btn {
-    padding: 15px 0;
-    font-size: 1.1rem;
+    padding: 12px 0;
+    font-size: 1rem;
     font-weight: bold;
     background: #333;
     color: white;
     border: 1px solid #555;
-    border-radius: 8px;
+    border-radius: 5px;
 }
 
 .invisible-btn { visibility: hidden; pointer-events: none; }
@@ -161,7 +159,7 @@ body {
     padding: 15px;
     background: #c0392b;
     color: white;
-    margin-top: 20px;
+    margin-top: 15px;
     border-radius: 8px;
     border: none;
     font-weight: bold;
