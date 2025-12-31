@@ -29,12 +29,12 @@ body {
     border: 1px solid #333;
 }
 
-/* Marcador TV - Altura fija del 12% de la pantalla */
+/* Marcador TV - Altura fija del 6% de la pantalla */
 .scoreboard {
     display: flex;
     justify-content: center;
     gap: 10px;
-    height: 12vh;
+    height: 6vh;
     align-items: center;
     width: 100%;
 }
