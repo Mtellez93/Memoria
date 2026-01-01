@@ -2,8 +2,8 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Memoria TV - mtellez.online</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memoria TV</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -45,7 +45,9 @@
 
     <div id="view-mobile" class="hidden">
         <div id="turn-indicator"></div>
-        <div id="controls" class="mobile-controls"></div>
+        <div class="scroll-container">
+            <div id="controls" class="mobile-controls"></div>
+        </div>
         <button class="btn-reset" onclick="resetearTodo()">Reiniciar Todo</button>
     </div>
 
@@ -98,10 +100,11 @@
         function renderMobile(state) {
             const pActual = state.players[state.currentPlayerIndex];
             const esMiTurno = pActual && pActual.id === socket.id;
-            document.getElementById('turn-indicator').innerHTML = `<h3>Hola <b>${myName}</b></h3><h2 style="color: ${esMiTurno ? '#27ae60' : '#e74c3c'}">${esMiTurno ? "¡TU TURNO!" : "Espera a " + (pActual ? pActual.name : "jugadores")}</h2>`;
+            document.getElementById('turn-indicator').innerHTML = `<h3>Jugador: <b>${myName}</b></h3><h2 class="${esMiTurno ? 'my-turn' : 'wait-turn'}">${esMiTurno ? "¡ES TU TURNO!" : "Turno de " + (pActual ? pActual.name : "...")}</h2>`;
             const controls = document.getElementById('controls');
             controls.innerHTML = '';
             controls.style.gridTemplateColumns = `repeat(${state.config.cols}, 1fr)`;
+            
             state.cards.forEach(card => {
                 const btn = document.createElement('button');
                 btn.innerText = card.coord;
