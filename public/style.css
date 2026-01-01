@@ -164,3 +164,35 @@ body {
     border: none;
     font-weight: bold;
 }
+/* Mensaje de Victoria Flotante */
+.winner-msg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    padding: 40px;
+    border-radius: 20px;
+    border: 3px solid #ffcc00;
+    text-align: center;
+    z-index: 100;
+    box-shadow: 0 0 50px rgba(255, 204, 0, 0.5);
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.winner-msg h2 {
+    font-size: 4vh;
+    color: #ffcc00;
+    margin: 0;
+}
+
+.winner-msg p {
+    font-size: 2vh;
+    color: white;
+    margin-top: 10px;
+}
+
+@keyframes popIn {
+    0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
