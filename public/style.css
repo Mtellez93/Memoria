@@ -36,42 +36,40 @@ select, input { width: 100%; padding: 12px; border-radius: 8px; background: #252
 .card-back { background: white center/contain no-repeat; transform: rotateY(180deg); }
 .card.matched { opacity: 0.15; filter: grayscale(100%); }
 
-/* MÓVIL: Jugabilidad Táctica */
+/* MÓVIL: Estructura fija */
 #view-mobile { 
     width: 100%; 
     height: 100vh; 
     display: flex; 
     flex-direction: column; 
-    padding: 10px; 
+    padding: 0; /* Quitamos padding para que el footer pegue abajo */
     overflow: hidden; 
 }
 
-#turn-indicator { text-align: center; padding: 10px 0; }
-#turn-indicator h3 { margin: 0; font-size: 1rem; color: #aaa; }
-#turn-indicator h2 { margin: 5px 0; font-size: 1.5rem; }
+#turn-indicator { text-align: center; padding: 15px 10px; background: #1a1a1a; border-bottom: 1px solid #333; }
+#turn-indicator h3 { margin: 0; font-size: 0.9rem; color: #aaa; }
+#turn-indicator h2 { margin: 5px 0; font-size: 1.4rem; }
 
 .my-turn { color: #2ecc71; animation: blink 1.5s infinite; }
 .wait-turn { color: #e74c3c; opacity: 0.7; }
 
 @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
-/* Contenedor que permite Scroll si hay muchas columnas */
 .scroll-container {
     flex-grow: 1;
     overflow-y: auto;
     width: 100%;
-    margin: 10px 0;
-    padding-right: 5px;
+    padding: 15px; /* Aquí damos el espacio a los botones */
 }
 
 .mobile-controls { 
     display: grid; 
-    gap: 12px; /* Más espacio entre botones */
+    gap: 12px; 
     width: 100%;
 }
 
 .coord-btn { 
-    height: 70px; /* BOTONES MÁS GRANDES PARA EL DEDO */
+    height: 70px; 
     font-size: 1.3rem; 
     font-weight: bold; 
     background: #333; 
@@ -81,19 +79,28 @@ select, input { width: 100%; padding: 12px; border-radius: 8px; background: #252
     display: flex;
     justify-content: center;
     align-items: center;
-    box-shadow: 0 4px 0 #111;
-    transition: all 0.1s;
 }
 
-.coord-btn:active:not(:disabled) {
-    transform: translateY(3px);
-    box-shadow: 0 1px 0 #111;
-    background: #444;
-}
-
-.coord-btn:disabled { opacity: 0.4; border-color: #222; box-shadow: none; color: #666; }
+.coord-btn:disabled { opacity: 0.4; }
 .invisible-btn { visibility: hidden; pointer-events: none; }
 
-.btn-reset { width: 100%; padding: 18px; background: #c0392b; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 1rem; margin-top: auto; }
+/* FOOTER FIJO PARA EL REINICIO */
+.mobile-footer {
+    padding: 15px;
+    background: #1a1a1a;
+    border-top: 1px solid #333;
+    width: 100%;
+}
+
+.btn-reset { 
+    width: 100%; 
+    padding: 16px; 
+    background: #c0392b; 
+    color: white; 
+    border: none; 
+    border-radius: 10px; 
+    font-weight: bold; 
+    font-size: 1.1rem; 
+}
 
 .winner-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); padding: 40px; border-radius: 20px; border: 3px solid #ffcc00; text-align: center; z-index: 100; width: 80%; }
