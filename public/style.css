@@ -1,198 +1,31 @@
 * { box-sizing: border-box; }
-
-body {
-    font-family: 'Segoe UI', Arial, sans-serif;
-    background: #0f0f0f;
-    color: white;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    height: 100vh; 
-    width: 100vw;
-    overflow: hidden; 
-}
-
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #0f0f0f; color: white; margin: 0; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
 .hidden { display: none !important; }
 
-/* Menú Principal */
-.menu-container {
-    background: #1a1a1a;
-    padding: 25px;
-    border-radius: 15px;
-    margin-top: 5vh;
-    width: 90%;
-    max-width: 350px;
-    text-align: center;
-    border: 1px solid #333;
-}
+.menu-container { background: #1a1a1a; padding: 25px; border-radius: 15px; margin-top: 5vh; width: 90%; max-width: 350px; text-align: center; border: 1px solid #333; }
+.option { margin: 15px 0; text-align: left; }
+select, input { width: 100%; padding: 10px; border-radius: 5px; background: #252525; color: white; border: 1px solid #444; }
 
-/* Marcador TV - Reducimos su altura para darle más espacio al tablero */
-.scoreboard {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    height: 8vh; /* Bajamos de 12vh a 8vh */
-    align-items: center;
-    width: 100%;
-    padding-top: 5px;
-}
+.btn-start { width: 100%; padding: 12px; background: #27ae60; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
-.player-pill {
-    padding: 5px 20px;
-    background: #222;
-    border-radius: 50px;
-    font-size: 2.8vh; /* Texto un poco más grande */
-    border: 2px solid transparent;
-}
+.scoreboard { display: flex; justify-content: center; gap: 15px; height: 8vh; align-items: center; width: 100%; }
+.player-pill { padding: 5px 20px; background: #222; border-radius: 50px; font-size: 2.5vh; border: 2px solid transparent; }
+.player-pill.active { background: #ffcc00; color: black; border-color: white; transform: scale(1.1); }
 
-.player-pill.active {
-    background: #ffcc00;
-    color: black;
-    border-color: white;
-    box-shadow: 0 0 15px rgba(255,204,0,0.4);
-}
+.grid-board { display: grid; gap: 0.5vh; padding: 1vh; height: 90vh; margin: 0 auto; }
+.label-ref { display: flex; justify-content: center; align-items: center; font-size: 2.2vh; font-weight: bold; color: #ffcc00; }
 
-/* Tablero TV - Ahora ocupa el 90% del alto */
-.grid-board {
-    display: grid;
-    gap: 0.5vh; /* ESPACIO MÍNIMO ENTRE CARTAS */
-    padding: 1vh;
-    background: rgba(255,255,255,0.02);
-    border-radius: 10px;
-    height: 90vh; 
-    width: auto;
-    margin: 0 auto;
-}
-
-.label-ref {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 2.5vh;
-    font-weight: bold;
-    color: #ffcc00;
-}
-
-/* CARTAS MAXIMIZADAS */
-.card {
-    /* Calculamos para que 6 cartas ocupen casi todo el 90vh del tablero */
-    height: 13.5vh; 
-    aspect-ratio: 3 / 4; 
-    perspective: 1000px;
-}
-
-/* Ajuste dinámico: Si solo hay 4 filas (4x4), las cartas pueden ser aún más grandes */
-.grid-board:not(:has(.card:nth-child(20))) .card {
-    height: 19vh; 
-}
-
-.card-inner {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    transition: transform 0.5s ease-in-out;
-    transform-style: preserve-3d;
-}
-
+.card { height: 13.5vh; aspect-ratio: 3/4; perspective: 1000px; }
+.card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.5s; transform-style: preserve-3d; }
 .card.flipped .card-inner { transform: rotateY(180deg); }
+.card-front, .card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 4px; border: 1px solid #fff; }
+.card-front { background: url('cover.jpg') center/cover; }
+.card-back { background: white center/contain no-repeat; transform: rotateY(180deg); }
+.card.matched { opacity: 0.15; filter: grayscale(100%); }
 
-.card-front, .card-back {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    backface-visibility: hidden;
-    border-radius: 4px; /* Bordes más rectos para que se vean más juntas */
-    border: 1px solid rgba(255,255,255,0.5);
-}
-
-.card-front {
-    background-image: url('cover.jpg');
-    background-size: cover;
-    background-position: center;
-}
-
-.card-back {
-    background-color: white;
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    transform: rotateY(180deg);
-}
-
-.card.matched {
-    opacity: 0.15;
-    filter: grayscale(100%);
-}
-
-/* --- MÓVIL (Se mantiene funcional) --- */
-#view-mobile {
-    width: 100%;
-    max-width: 500px;
-    padding: 10px;
-    height: 100vh;
-    overflow-y: auto; 
-    display: flex;
-    flex-direction: column;
-}
-
-.mobile-controls {
-    display: grid;
-    gap: 5px;
-}
-
-.coord-btn {
-    padding: 12px 0;
-    font-size: 1rem;
-    font-weight: bold;
-    background: #333;
-    color: white;
-    border: 1px solid #555;
-    border-radius: 5px;
-}
-
+.mobile-controls { display: grid; gap: 5px; width: 100%; }
+.coord-btn { padding: 12px 0; font-size: 1rem; background: #333; color: white; border: 1px solid #555; border-radius: 5px; }
 .invisible-btn { visibility: hidden; pointer-events: none; }
+.btn-reset { width: 100%; padding: 15px; background: #c0392b; color: white; margin-top: 15px; border-radius: 8px; border: none; }
 
-.btn-reset {
-    width: 100%;
-    padding: 15px;
-    background: #c0392b;
-    color: white;
-    margin-top: 15px;
-    border-radius: 8px;
-    border: none;
-    font-weight: bold;
-}
-/* Mensaje de Victoria Flotante */
-.winner-msg {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(0, 0, 0, 0.9);
-    padding: 40px;
-    border-radius: 20px;
-    border: 3px solid #ffcc00;
-    text-align: center;
-    z-index: 100;
-    box-shadow: 0 0 50px rgba(255, 204, 0, 0.5);
-    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.winner-msg h2 {
-    font-size: 4vh;
-    color: #ffcc00;
-    margin: 0;
-}
-
-.winner-msg p {
-    font-size: 2vh;
-    color: white;
-    margin-top: 10px;
-}
-
-@keyframes popIn {
-    0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
-    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-}
+.winner-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); padding: 40px; border-radius: 20px; border: 3px solid #ffcc00; text-align: center; z-index: 100; }
