@@ -21,15 +21,15 @@ let gameState = {
 
 // --- Cambia esto por tus URLs de imágenes de Google Sheets ---
 const cardImages = [
-    "https://placehold.co/400x600/png?text=1", "https://placehold.co/400x600/png?text=2",
-    "https://placehold.co/400x600/png?text=3", "https://placehold.co/400x600/png?text=4",
-    "https://placehold.co/400x600/png?text=5", "https://placehold.co/400x600/png?text=6",
-    "https://placehold.co/400x600/png?text=7", "https://placehold.co/400x600/png?text=8",
-    "https://placehold.co/400x600/png?text=9", "https://placehold.co/400x600/png?text=10",
-    "https://placehold.co/400x600/png?text=11", "https://placehold.co/400x600/png?text=12",
-    "https://placehold.co/400x600/png?text=13", "https://placehold.co/400x600/png?text=14",
-    "https://placehold.co/400x600/png?text=15", "https://placehold.co/400x600/png?text=16",
-    "https://placehold.co/400x600/png?text=17", "https://placehold.co/400x600/png?text=18"
+    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/1.jpg", ""https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/10.jpg",
+    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/2.jpg", ""https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/11.jpg",
+    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/3.jpg", ""https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/12.jpg",
+    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/4.jpg", ""https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/13.jpg",
+    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/5.jpg", ""https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/14.jpg",
+    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/6.jpg", ""https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/15.jpg",
+    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/7.jpg", ""https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/16.jpg",
+    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/8.jpg", ""https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/17.jpg",
+    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/9.jpg", ""https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/18.jpg"
 ];
 
 function initGame(rows, cols, maxPlayers) {
