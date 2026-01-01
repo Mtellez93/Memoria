@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <title>Memoria TV</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <div id="setup-menu" class="menu-container hidden">
-        <h1>CONFIGURAR PARTIDA</h1>
+        <h1>CONFIGURAR</h1>
         <div class="option">
             <label>Tablero:</label>
             <select id="grid-size">
@@ -30,7 +30,7 @@
 
     <div id="name-menu" class="menu-container hidden">
         <h1>TU NOMBRE</h1>
-        <input type="text" id="player-name" placeholder="Escribe tu nombre..." maxlength="12">
+        <input type="text" id="player-name" placeholder="Tu nombre..." maxlength="12">
         <button class="btn-start" style="margin-top:15px" onclick="unirseAlJuego()">UNIRSE</button>
     </div>
 
@@ -39,18 +39,20 @@
         <div id="board" class="grid-board"></div>
         <div id="winner-overlay" class="winner-msg hidden">
             <h2 id="winner-text"></h2>
-            <p>Reinicia desde el celular</p>
+            <p>Reinicia desde el móvil</p>
         </div>
     </div>
 
-    <div id="view-mobile" class="hidden">
-        <div id="turn-indicator"></div>
-        <div class="scroll-container">
+    <div id="view-mobile" class="hidden mobile-wrapper">
+        <header id="turn-indicator"></header>
+        
+        <main class="scroll-container">
             <div id="controls" class="mobile-controls"></div>
-        </div>
-        <div class="mobile-footer">
+        </main>
+        
+        <footer class="mobile-footer">
             <button class="btn-reset" onclick="resetearTodo()">Reiniciar Todo</button>
-        </div>
+        </footer>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -113,9 +115,9 @@
             const esMiTurno = pActual && pActual.id === socket.id;
             
             document.getElementById('turn-indicator').innerHTML = `
-                <h3>Jugador: <b>${myName}</b></h3>
+                <h3>${myName}</h3>
                 <h2 class="${esMiTurno ? 'my-turn' : 'wait-turn'}">
-                    ${esMiTurno ? "¡TU TURNO!" : (pActual ? "Turno de " + pActual.name : "Espera...")}
+                    ${esMiTurno ? "¡TU TURNO!" : (pActual ? pActual.name : "...")}
                 </h2>`;
             
             const controls = document.getElementById('controls');
@@ -141,7 +143,7 @@
         });
 
         socket.on('goToMenu', () => {
-            myName = ""; // Resetear nombre local para el nuevo inicio
+            myName = "";
             window.location.reload();
         });
     </script>
