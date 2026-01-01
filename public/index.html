@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Memoria TV</title>
+    <title>Memoria TV - mtellez.online</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -48,7 +48,9 @@
         <div class="scroll-container">
             <div id="controls" class="mobile-controls"></div>
         </div>
-        <button class="btn-reset" onclick="resetearTodo()">Reiniciar Todo</button>
+        <div class="mobile-footer">
+            <button class="btn-reset" onclick="resetearTodo()">Reiniciar Todo</button>
+        </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -71,13 +73,22 @@
 
         socket.on('gameUpdate', (state) => {
             if (!state.gameStarted) {
-                if (isMobile) document.getElementById('setup-menu').classList.remove('hidden');
+                if (isMobile) {
+                    document.getElementById('setup-menu').classList.remove('hidden');
+                    document.getElementById('view-mobile').classList.add('hidden');
+                    document.getElementById('name-menu').classList.add('hidden');
+                } else {
+                    document.getElementById('view-tv').classList.add('hidden');
+                }
                 return;
             }
             document.getElementById('setup-menu').classList.add('hidden');
             if (isMobile) {
                 if (!myName) document.getElementById('name-menu').classList.remove('hidden');
-                else { document.getElementById('view-mobile').classList.remove('hidden'); renderMobile(state); }
+                else { 
+                    document.getElementById('view-mobile').classList.remove('hidden'); 
+                    renderMobile(state); 
+                }
             } else {
                 document.getElementById('view-tv').classList.remove('hidden');
                 renderTV(state);
@@ -100,7 +111,13 @@
         function renderMobile(state) {
             const pActual = state.players[state.currentPlayerIndex];
             const esMiTurno = pActual && pActual.id === socket.id;
-            document.getElementById('turn-indicator').innerHTML = `<h3>Jugador: <b>${myName}</b></h3><h2 class="${esMiTurno ? 'my-turn' : 'wait-turn'}">${esMiTurno ? "¡ES TU TURNO!" : "Turno de " + (pActual ? pActual.name : "...")}</h2>`;
+            
+            document.getElementById('turn-indicator').innerHTML = `
+                <h3>Jugador: <b>${myName}</b></h3>
+                <h2 class="${esMiTurno ? 'my-turn' : 'wait-turn'}">
+                    ${esMiTurno ? "¡TU TURNO!" : (pActual ? "Turno de " + pActual.name : "Espera...")}
+                </h2>`;
+            
             const controls = document.getElementById('controls');
             controls.innerHTML = '';
             controls.style.gridTemplateColumns = `repeat(${state.config.cols}, 1fr)`;
@@ -123,7 +140,10 @@
             }
         });
 
-        socket.on('goToMenu', () => window.location.reload());
+        socket.on('goToMenu', () => {
+            myName = ""; // Resetear nombre local para el nuevo inicio
+            window.location.reload();
+        });
     </script>
 </body>
 </html>
