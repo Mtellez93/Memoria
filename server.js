@@ -91,7 +91,9 @@ io.on('connection', (socket) => {
                 player.score++;
                 gameState.flippedCards = [];
                 gameState.canPlay = true;
-                if (gameState.cards.every(c => c.isMatched)) io.emit('gameOver', gameState.players);
+                if (gameState.cards.every(c => c.isMatched)) {
+                    io.emit('gameOver', gameState.players);
+                }
             } else {
                 setTimeout(() => {
                     c1.isFlipped = c2.isFlipped = false;
