@@ -1,111 +1,108 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
-const axios = require('axios');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSnoYk8Oag6BHpzOLK3JFWjuOLxaY0fuM4e-fyUevQ5E-2oXBBJnf31-6biWM_YWfwApOQ6WvXwFme1/pub?output=csv";
+app.use(express.static(path.join(__dirname, 'public')));
 
 let gameState = {
     cards: [],
-    selectedCards: [],
-    canPlay: false,
     players: [],
     currentPlayerIndex: 0,
     gameStarted: false,
-    config: { rows: 4, cols: 4 }
+    canPlay: true,
+    flippedCards: [],
+    config: { rows: 4, cols: 4, maxPlayers: 1 }
 };
 
-async function initGame(rows, cols, numPlayers) {
-    try {
-        const res = await axios.get(CSV_URL);
-        const rowsCSV = res.data.split('\n').slice(1);
-        let allImages = rowsCSV.map(r => {
-            const data = r.split(',');
-            return { id: data[0].trim(), url: data[1].trim() };
-        });
+// --- Cambia esto por tus URLs de imágenes de Google Sheets ---
+const cardImages = [
+    "https://placehold.co/400x600/png?text=1", "https://placehold.co/400x600/png?text=2",
+    "https://placehold.co/400x600/png?text=3", "https://placehold.co/400x600/png?text=4",
+    "https://placehold.co/400x600/png?text=5", "https://placehold.co/400x600/png?text=6",
+    "https://placehold.co/400x600/png?text=7", "https://placehold.co/400x600/png?text=8",
+    "https://placehold.co/400x600/png?text=9", "https://placehold.co/400x600/png?text=10",
+    "https://placehold.co/400x600/png?text=11", "https://placehold.co/400x600/png?text=12",
+    "https://placehold.co/400x600/png?text=13", "https://placehold.co/400x600/png?text=14",
+    "https://placehold.co/400x600/png?text=15", "https://placehold.co/400x600/png?text=16",
+    "https://placehold.co/400x600/png?text=17", "https://placehold.co/400x600/png?text=18"
+];
 
-        const totalCards = rows * cols;
-        const numPairs = totalCards / 2;
-        
-        // Seleccionar imágenes aleatorias del pool y duplicarlas
-        let selectedImages = allImages.sort(() => Math.random() - 0.5).slice(0, numPairs);
-        let deck = [...selectedImages, ...selectedImages].sort(() => Math.random() - 0.5);
-
-        const colLabels = ['A', 'B', 'C', 'D', 'E', 'F'];
-        gameState.cards = deck.map((card, i) => ({
-            ...card,
-            coord: `${colLabels[i % cols]}${Math.floor(i / cols) + 1}`,
+function initGame(rows, cols, maxPlayers) {
+    const totalCards = rows * cols;
+    const pairsNeeded = totalCards / 2;
+    let selectedImages = cardImages.slice(0, pairsNeeded);
+    let cardsDeck = [...selectedImages, ...selectedImages]
+        .sort(() => Math.random() - 0.5)
+        .map((url, i) => ({
+            id: i,
+            url: url,
+            coord: `${String.fromCharCode(65 + (i % cols))}${Math.floor(i / cols) + 1}`,
             isFlipped: false,
             isMatched: false
         }));
 
-        gameState.players = Array.from({ length: numPlayers }, (_, i) => ({
-            id: i,
-            name: `Jugador ${i + 1}`,
-            score: 0
-        }));
-
-        gameState.selectedCards = [];
-        gameState.currentPlayerIndex = 0;
-        gameState.gameStarted = true;
-        gameState.canPlay = true;
-        gameState.config = { rows, cols };
-        
-        io.emit('gameUpdate', gameState);
-    } catch (e) { 
-        console.error("Error cargando Google Sheets:", e); 
-    }
+    gameState = {
+        cards: cardsDeck,
+        players: [],
+        currentPlayerIndex: 0,
+        gameStarted: true,
+        canPlay: true,
+        flippedCards: [],
+        config: { rows, cols, maxPlayers }
+    };
 }
-
-app.use(express.static('public'));
 
 io.on('connection', (socket) => {
     socket.emit('gameUpdate', gameState);
 
-    socket.on('startGame', ({ rows, cols, players }) => {
-        initGame(parseInt(rows), parseInt(cols), parseInt(players));
+    socket.on('startGame', (config) => {
+        initGame(parseInt(config.rows), parseInt(config.cols), parseInt(config.players));
+        io.emit('gameUpdate', gameState);
+    });
+
+    socket.on('joinGame', (name) => {
+        if (gameState.players.length < gameState.config.maxPlayers) {
+            gameState.players.push({ id: socket.id, name: name, score: 0 });
+            io.emit('gameUpdate', gameState);
+        }
     });
 
     socket.on('flipCard', (coord) => {
-        if (!gameState.canPlay) return;
+        const player = gameState.players[gameState.currentPlayerIndex];
+        if (!gameState.canPlay || !player || player.id !== socket.id) return;
+
         const card = gameState.cards.find(c => c.coord === coord);
         if (!card || card.isFlipped || card.isMatched) return;
 
         card.isFlipped = true;
-        gameState.selectedCards.push(card);
+        gameState.flippedCards.push(card);
         io.emit('gameUpdate', gameState);
 
-        if (gameState.selectedCards.length === 2) {
+        if (gameState.flippedCards.length === 2) {
             gameState.canPlay = false;
-            const [c1, c2] = gameState.selectedCards;
+            const [c1, c2] = gameState.flippedCards;
 
-            if (c1.id === c2.id) {
-                // ACIERTO
-                gameState.players[gameState.currentPlayerIndex].score++;
-                c1.isMatched = true;
-                c2.isMatched = true;
-                gameState.selectedCards = [];
+            if (c1.url === c2.url) {
+                c1.isMatched = c2.isMatched = true;
+                player.score++;
+                gameState.flippedCards = [];
                 gameState.canPlay = true;
-                io.emit('gameUpdate', gameState);
-                
-                if (gameState.cards.every(c => c.isMatched)) {
-                    io.emit('gameOver', gameState.players);
-                }
+                if (gameState.cards.every(c => c.isMatched)) io.emit('gameOver', gameState.players);
             } else {
-                // FALLO
                 setTimeout(() => {
-                    c1.isFlipped = false;
-                    c2.isFlipped = false;
-                    gameState.selectedCards = [];
+                    c1.isFlipped = c2.isFlipped = false;
+                    gameState.flippedCards = [];
                     gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
                     gameState.canPlay = true;
                     io.emit('gameUpdate', gameState);
-                }, 2000);
+                }, 1500);
             }
+            io.emit('gameUpdate', gameState);
         }
     });
 
@@ -116,4 +113,4 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
+server.listen(PORT, () => console.log(`Servidor en puerto ${PORT}`));
