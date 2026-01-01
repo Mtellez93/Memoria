@@ -20,15 +20,15 @@ let gameState = {
 };
 
 const cardImages = [
-    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/1.jpg", ""https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/10.jpg",
-    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/2.jpg", ""https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/11.jpg",
-    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/3.jpg", ""https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/12.jpg",
-    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/4.jpg", ""https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/13.jpg",
-    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/5.jpg", ""https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/14.jpg",
-    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/6.jpg", ""https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/15.jpg",
-    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/7.jpg", ""https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/16.jpg",
-    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/8.jpg", ""https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/17.jpg",
-    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/9.jpg", ""https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/18.jpg"
+    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/1.jpg", "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/10.jpg",
+    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/2.jpg", "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/11.jpg",
+    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/3.jpg", "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/12.jpg",
+    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/4.jpg", "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/13.jpg",
+    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/5.jpg", "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/14.jpg",
+    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/6.jpg", "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/15.jpg",
+    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/7.jpg", "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/16.jpg",
+    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/8.jpg", "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/17.jpg",
+    "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/9.jpg", "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/18.jpg"
 ];
 
 function initGame(rows, cols, maxPlayers) {
