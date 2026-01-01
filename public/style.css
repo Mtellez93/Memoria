@@ -1,106 +1,88 @@
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
 
-body { 
-    font-family: 'Segoe UI', Arial, sans-serif; 
+html, body { 
+    height: 100%; /* Importante para Android */
+    width: 100%;
     background: #0f0f0f; 
     color: white; 
-    margin: 0; 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    height: 100vh; 
+    font-family: 'Segoe UI', Arial, sans-serif; 
     overflow: hidden; 
 }
 
 .hidden { display: none !important; }
 
 /* Menú */
-.menu-container { background: #1a1a1a; padding: 25px; border-radius: 15px; margin-top: 5vh; width: 90%; max-width: 350px; text-align: center; border: 1px solid #333; }
+.menu-container { 
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    background: #1a1a1a; padding: 25px; border-radius: 15px; width: 90%; max-width: 350px; text-align: center; border: 1px solid #333; 
+}
 .option { margin: 15px 0; text-align: left; }
-select, input { width: 100%; padding: 12px; border-radius: 8px; background: #252525; color: white; border: 1px solid #444; font-size: 1rem; }
-.btn-start { width: 100%; padding: 15px; background: #27ae60; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1.1rem; }
+select, input { width: 100%; padding: 12px; border-radius: 8px; background: #252525; color: white; border: 1px solid #444; }
+.btn-start { width: 100%; padding: 15px; background: #27ae60; color: white; border: none; border-radius: 8px; font-weight: bold; }
 
-/* TV */
-.scoreboard { display: flex; justify-content: center; gap: 15px; height: 8vh; align-items: center; width: 100%; }
-.player-pill { padding: 5px 20px; background: #222; border-radius: 50px; font-size: 2.5vh; border: 2px solid transparent; }
-.player-pill.active { background: #ffcc00; color: black; border-color: white; transform: scale(1.1); }
-
-.grid-board { display: grid; gap: 0.5vh; padding: 1vh; height: 90vh; margin: 0 auto; }
-.label-ref { display: flex; justify-content: center; align-items: center; font-size: 2.2vh; font-weight: bold; color: #ffcc00; }
-
-.card { height: 13.5vh; aspect-ratio: 3/4; perspective: 1000px; }
+/* TV Styles */
+.scoreboard { display: flex; justify-content: center; gap: 10px; height: 10vh; align-items: center; }
+.player-pill { padding: 5px 15px; background: #222; border-radius: 50px; font-size: 2vh; }
+.player-pill.active { background: #ffcc00; color: black; border-color: white; }
+.grid-board { display: grid; gap: 5px; height: 85vh; padding: 10px; margin: 0 auto; }
+.card { height: 12vh; aspect-ratio: 3/4; perspective: 1000px; }
 .card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.5s; transform-style: preserve-3d; }
 .card.flipped .card-inner { transform: rotateY(180deg); }
 .card-front, .card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 4px; border: 1px solid #fff; }
 .card-front { background: url('cover.jpg') center/cover; }
 .card-back { background: white center/contain no-repeat; transform: rotateY(180deg); }
-.card.matched { opacity: 0.15; filter: grayscale(100%); }
+.card.matched { opacity: 0.1; }
 
-/* MÓVIL: Estructura fija */
-#view-mobile { 
-    width: 100%; 
-    height: 100vh; 
-    display: flex; 
-    flex-direction: column; 
-    padding: 0; /* Quitamos padding para que el footer pegue abajo */
-    overflow: hidden; 
+/* --- MÓVIL: Solución Android/iOS --- */
+.mobile-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* Forzamos a que use el alto del body (100%) */
+    width: 100%;
+    position: fixed; /* Evita que la barra de Chrome lo mueva */
+    top: 0;
+    left: 0;
 }
 
-#turn-indicator { text-align: center; padding: 15px 10px; background: #1a1a1a; border-bottom: 1px solid #333; }
-#turn-indicator h3 { margin: 0; font-size: 0.9rem; color: #aaa; }
-#turn-indicator h2 { margin: 5px 0; font-size: 1.4rem; }
-
-.my-turn { color: #2ecc71; animation: blink 1.5s infinite; }
-.wait-turn { color: #e74c3c; opacity: 0.7; }
-
-@keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+#turn-indicator { 
+    padding: 10px; 
+    background: #111; 
+    text-align: center; 
+    border-bottom: 2px solid #333;
+    flex-shrink: 0; /* No se encoge */
+}
 
 .scroll-container {
-    flex-grow: 1;
+    flex: 1; /* Ocupa todo el espacio sobrante entre header y footer */
     overflow-y: auto;
-    width: 100%;
-    padding: 15px; /* Aquí damos el espacio a los botones */
+    padding: 15px;
+    -webkit-overflow-scrolling: touch;
 }
 
 .mobile-controls { 
     display: grid; 
-    gap: 12px; 
+    gap: 10px; 
     width: 100%;
 }
 
 .coord-btn { 
-    height: 70px; 
-    font-size: 1.3rem; 
-    font-weight: bold; 
-    background: #333; 
-    color: white; 
-    border: 2px solid #555; 
-    border-radius: 10px; 
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    height: 60px; font-size: 1.2rem; font-weight: bold; background: #333; color: white; border: 2px solid #555; border-radius: 10px; 
 }
 
-.coord-btn:disabled { opacity: 0.4; }
-.invisible-btn { visibility: hidden; pointer-events: none; }
+.invisible-btn { visibility: hidden; }
 
-/* FOOTER FIJO PARA EL REINICIO */
 .mobile-footer {
     padding: 15px;
-    background: #1a1a1a;
-    border-top: 1px solid #333;
-    width: 100%;
+    background: #111;
+    border-top: 2px solid #333;
+    flex-shrink: 0; /* No se encoge, siempre visible */
+    padding-bottom: env(safe-area-inset-bottom, 15px); /* Soporte para iPhone X+ y Android moderns */
 }
 
 .btn-reset { 
-    width: 100%; 
-    padding: 16px; 
-    background: #c0392b; 
-    color: white; 
-    border: none; 
-    border-radius: 10px; 
-    font-weight: bold; 
-    font-size: 1.1rem; 
+    width: 100%; padding: 15px; background: #c0392b; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 1.1rem; 
 }
 
-.winner-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); padding: 40px; border-radius: 20px; border: 3px solid #ffcc00; text-align: center; z-index: 100; width: 80%; }
+.my-turn { color: #2ecc71; }
+.wait-turn { color: #e74c3c; }
+.winner-msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); padding: 40px; border-radius: 20px; text-align: center; z-index: 1000; width: 80%; }
