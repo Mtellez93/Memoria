@@ -2,40 +2,44 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Memoria TV - Juego</title>
+    <title>Memoria TV - mtellez.online</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div id="setup-menu" class="menu-container">
-        <h1>MEMORIA TV</h1>
+    <div id="setup-menu" class="menu-container hidden">
+        <h1>CONFIGURAR PARTIDA</h1>
         <div class="option">
-            <label>Tamaño del Tablero:</label>
+            <label>Tablero:</label>
             <select id="grid-size">
-                <option value="4x4">4x4 (16 cartas)</option>
-                <option value="6x4">6x4 (24 cartas)</option>
-                <option value="6x6">6x6 (36 cartas)</option>
+                <option value="4x4">4x4</option>
+                <option value="6x4">6x4</option>
+                <option value="6x6">6x6</option>
             </select>
         </div>
         <div class="option">
             <label>Jugadores:</label>
             <select id="player-count">
-                <option value="1">1 Jugador</option>
-                <option value="2">2 Jugadores</option>
-                <option value="3">3 Jugadores</option>
-                <option value="4">4 Jugadores</option>
+                <option value="1">1</option><option value="2">2</option>
+                <option value="3">3</option><option value="4">4</option>
             </select>
         </div>
-        <button class="btn-start" onclick="enviarConfiguracion()">EMPEZAR JUEGO</button>
+        <button class="btn-start" onclick="enviarConfiguracion()">CREAR SALA</button>
+    </div>
+
+    <div id="name-menu" class="menu-container hidden">
+        <h1>TU NOMBRE</h1>
+        <input type="text" id="player-name" placeholder="Escribe tu nombre..." maxlength="12">
+        <button class="btn-start" style="margin-top:15px" onclick="unirseAlJuego()">UNIRSE</button>
     </div>
 
     <div id="view-tv" class="hidden">
         <div id="scoreboard" class="scoreboard"></div>
         <div id="board" class="grid-board"></div>
         <div id="winner-overlay" class="winner-msg hidden">
-            <h2 id="winner-text">¡PARTIDA FINALIZADA!</h2>
-            <p>Reinicia desde el celular para jugar de nuevo</p>
+            <h2 id="winner-text"></h2>
+            <p>Reinicia desde el celular</p>
         </div>
     </div>
 
@@ -49,34 +53,29 @@
     <script>
         const socket = io();
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        let myName = "";
 
         function enviarConfiguracion() {
             const size = document.getElementById('grid-size').value.split('x');
-            const players = document.getElementById('player-count').value;
-            socket.emit('startGame', { rows: size[1], cols: size[0], players: players });
+            socket.emit('startGame', { rows: size[1], cols: size[0], players: document.getElementById('player-count').value });
         }
 
-        function resetearTodo() {
-            socket.emit('requestReset');
+        function unirseAlJuego() {
+            const name = document.getElementById('player-name').value.trim();
+            if (name) { myName = name; socket.emit('joinGame', name); document.getElementById('name-menu').classList.add('hidden'); }
         }
 
-        socket.on('goToMenu', () => {
-            window.location.reload();
-        });
+        function resetearTodo() { socket.emit('requestReset'); }
 
         socket.on('gameUpdate', (state) => {
             if (!state.gameStarted) {
-                document.getElementById('setup-menu').classList.remove('hidden');
-                document.getElementById('view-tv').classList.add('hidden');
-                document.getElementById('view-mobile').classList.add('hidden');
+                if (isMobile) document.getElementById('setup-menu').classList.remove('hidden');
                 return;
             }
-            
             document.getElementById('setup-menu').classList.add('hidden');
-            
             if (isMobile) {
-                document.getElementById('view-mobile').classList.remove('hidden');
-                renderMobile(state);
+                if (!myName) document.getElementById('name-menu').classList.remove('hidden');
+                else { document.getElementById('view-mobile').classList.remove('hidden'); renderMobile(state); }
             } else {
                 document.getElementById('view-tv').classList.remove('hidden');
                 renderTV(state);
@@ -86,72 +85,42 @@
         function renderTV(state) {
             const board = document.getElementById('board');
             const scoreboard = document.getElementById('scoreboard');
-            
-            scoreboard.innerHTML = state.players.map((p, i) => `
-                <div class="player-pill ${state.currentPlayerIndex === i ? 'active' : ''}">
-                    ${p.name}: ${p.score}
-                </div>
-            `).join('');
-
+            scoreboard.innerHTML = state.players.map((p, i) => `<div class="player-pill ${state.currentPlayerIndex === i ? 'active' : ''}">${p.name}: ${p.score}</div>`).join('');
             board.style.gridTemplateColumns = `50px repeat(${state.config.cols}, 1fr)`;
-            board.innerHTML = '<div></div>'; 
-
-            for(let i=0; i<state.config.cols; i++) {
-                board.innerHTML += `<div class="label-ref">${String.fromCharCode(65+i)}</div>`;
-            }
-
+            board.innerHTML = '<div></div>';
+            for(let i=0; i<state.config.cols; i++) board.innerHTML += `<div class="label-ref">${String.fromCharCode(65+i)}</div>`;
             state.cards.forEach((card, index) => {
-                if (index % state.config.cols === 0) {
-                    board.innerHTML += `<div class="label-ref">${Math.floor(index/state.config.cols)+1}</div>`;
-                }
-                board.innerHTML += `
-                    <div class="card ${card.isFlipped ? 'flipped' : ''} ${card.isMatched ? 'matched' : ''}">
-                        <div class="card-inner">
-                            <div class="card-front"></div> 
-                            <div class="card-back" style="background-image: url('${card.url}')"></div>
-                        </div>
-                    </div>`;
+                if (index % state.config.cols === 0) board.innerHTML += `<div class="label-ref">${Math.floor(index/state.config.cols)+1}</div>`;
+                board.innerHTML += `<div class="card ${card.isFlipped ? 'flipped' : ''} ${card.isMatched ? 'matched' : ''}"><div class="card-inner"><div class="card-front"></div><div class="card-back" style="background-image: url('${card.url}')"></div></div></div>`;
             });
         }
 
         function renderMobile(state) {
-            const turnInd = document.getElementById('turn-indicator');
             const pActual = state.players[state.currentPlayerIndex];
-            turnInd.innerHTML = `<h3>Turno: <span style="color:#ffcc00">${pActual.name}</span></h3>`;
-            
+            const esMiTurno = pActual && pActual.id === socket.id;
+            document.getElementById('turn-indicator').innerHTML = `<h3>Hola <b>${myName}</b></h3><h2 style="color: ${esMiTurno ? '#27ae60' : '#e74c3c'}">${esMiTurno ? "¡TU TURNO!" : "Espera a " + (pActual ? pActual.name : "jugadores")}</h2>`;
             const controls = document.getElementById('controls');
             controls.innerHTML = '';
             controls.style.gridTemplateColumns = `repeat(${state.config.cols}, 1fr)`;
-
             state.cards.forEach(card => {
                 const btn = document.createElement('button');
                 btn.innerText = card.coord;
-                btn.className = "coord-btn";
-                
-                if (card.isMatched) {
-                    btn.classList.add('invisible-btn');
-                    btn.disabled = true;
-                } else {
-                    btn.disabled = card.isFlipped || !state.canPlay;
-                    btn.onclick = () => socket.emit('flipCard', card.coord);
-                }
+                btn.className = `coord-btn ${card.isMatched ? 'invisible-btn' : ''}`;
+                btn.disabled = !esMiTurno || card.isFlipped || !state.canPlay;
+                btn.onclick = () => socket.emit('flipCard', card.coord);
                 controls.appendChild(btn);
             });
         }
 
-        // CAMBIO AQUÍ: Ahora muestra un mensaje visual en lugar de un alert
         socket.on('gameOver', (players) => {
             if (!isMobile) {
-                const overlay = document.getElementById('winner-overlay');
-                const winText = document.getElementById('winner-text');
-                
-                // Encontrar al ganador
                 const winner = [...players].sort((a, b) => b.score - a.score)[0];
-                
-                winText.innerText = `¡GANADOR: ${winner.name.toUpperCase()}!`;
-                overlay.classList.remove('hidden');
+                document.getElementById('winner-text').innerText = `¡GANADOR: ${winner.name.toUpperCase()}!`;
+                document.getElementById('winner-overlay').classList.remove('hidden');
             }
         });
+
+        socket.on('goToMenu', () => window.location.reload());
     </script>
 </body>
 </html>
