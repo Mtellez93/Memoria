@@ -19,7 +19,6 @@ let gameState = {
     config: { rows: 4, cols: 4, maxPlayers: 1 }
 };
 
-// --- Cambia esto por tus URLs de imágenes de Google Sheets ---
 const cardImages = [
     "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/1.jpg", ""https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/10.jpg",
     "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/2.jpg", ""https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/11.jpg",
