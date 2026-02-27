@@ -1,4 +1,4 @@
-name: Deploy Memoria
+name: Deploy memoria
 
 on:
   push:
