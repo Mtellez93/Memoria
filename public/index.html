@@ -50,11 +50,21 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
+        const HOST_STORAGE_KEY = 'memoria-host-id';
+        const hostClientId = localStorage.getItem(HOST_STORAGE_KEY) || crypto.randomUUID();
+        localStorage.setItem(HOST_STORAGE_KEY, hostClientId);
         let lobbyCode = '';
+
+        socket.on('connect', () => {
+            socket.emit('registerClient', { role: 'host', clientId: hostClientId, code: lobbyCode });
+        });
 
         function crearSala() {
             const size = document.getElementById('grid-size').value.split('x');
-            socket.emit('createLobby', { rows: size[1], cols: size[0], players: document.getElementById('player-count').value });
+            socket.emit('createLobby', {
+                clientId: hostClientId,
+                config: { rows: size[1], cols: size[0], players: document.getElementById('player-count').value }
+            });
         }
 
         function iniciarPartida() {
@@ -77,14 +87,18 @@
             document.getElementById('qr-image').src = qrUrl;
         });
 
+        socket.on('hostRejoined', ({ code }) => {
+            lobbyCode = code;
+        });
+
         socket.on('gameUpdate', (state) => {
             if (!state || state.code !== lobbyCode) return;
 
             if (!state.gameStarted) {
-                const canStart = state.players.length === state.config.maxPlayers;
+                const canStart = state.players.length === state.config.maxPlayers && state.players.every((p) => p.connected !== false);
                 document.getElementById('btn-start-game').disabled = !canStart;
                 document.getElementById('player-list').innerHTML =
-                    state.players.map((p) => `<div class="player-pill">${p.name}</div>`).join('') || '<p>Aún no hay jugadores.</p>';
+                    state.players.map((p) => `<div class="player-pill">${p.name}${p.connected === false ? ' (reconectando...)' : ''}</div>`).join('') || '<p>Aún no hay jugadores.</p>';
                 return;
             }
 
