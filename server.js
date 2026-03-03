@@ -11,6 +11,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const lobbies = new Map();
 const socketLobbyMap = new Map();
+const reconnectTimers = new Map();
+const RECONNECT_GRACE_MS = 60000;
 
 const cardImages = [
     "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/1.jpg", "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/10.jpg",
@@ -52,6 +54,24 @@ function createLobby(config, hostId) {
     });
 
     return code;
+}
+
+function clearReconnectTimer(clientId) {
+    const timer = reconnectTimers.get(clientId);
+    if (timer) {
+        clearTimeout(timer);
+        reconnectTimers.delete(clientId);
+    }
+}
+
+function bindSocketToLobby(socket, code) {
+    const currentCode = socketLobbyMap.get(socket.id);
+    if (currentCode && currentCode !== code) {
+        socket.leave(currentCode);
+    }
+
+    socket.join(code);
+    socketLobbyMap.set(socket.id, code);
 }
 
 function initGame(lobby) {
@@ -102,32 +122,44 @@ function cleanUpLobby(code) {
 }
 
 io.on('connection', (socket) => {
-    socket.on('createLobby', (config) => {
+    socket.on('createLobby', ({ config, clientId }) => {
+        if (!clientId) return;
+        socket.data.clientId = clientId;
         const existingCode = socketLobbyMap.get(socket.id);
         if (existingCode) {
             socket.leave(existingCode);
             socketLobbyMap.delete(socket.id);
         }
 
-        const code = createLobby(config, socket.id);
-        socket.join(code);
-        socketLobbyMap.set(socket.id, code);
+        const code = createLobby(config, clientId);
+        bindSocketToLobby(socket, code);
+        clearReconnectTimer(clientId);
 
         socket.emit('lobbyCreated', { code });
         emitLobbyUpdate(code);
     });
 
-    socket.on('joinLobby', ({ code, name }) => {
+    socket.on('joinLobby', ({ code, name, clientId }) => {
         const normalizedCode = String(code || '').trim().toUpperCase();
         const playerName = String(name || '').trim();
+        const normalizedClientId = String(clientId || '').trim();
         const lobby = lobbies.get(normalizedCode);
+
+        if (!normalizedClientId) {
+            socket.emit('joinError', 'No se pudo validar tu sesión. Recarga la página.');
+            return;
+        }
+
+        socket.data.clientId = normalizedClientId;
 
         if (!lobby) {
             socket.emit('joinError', 'Código de sala inválido.');
             return;
         }
 
-        if (lobby.gameStarted) {
+        const existingPlayer = lobby.players.find((p) => p.id === normalizedClientId);
+
+        if (lobby.gameStarted && !existingPlayer) {
             socket.emit('joinError', 'La partida ya comenzó.');
             return;
         }
@@ -137,22 +169,21 @@ io.on('connection', (socket) => {
             return;
         }
 
-        if (lobby.players.length >= lobby.config.maxPlayers) {
+        if (lobby.players.length >= lobby.config.maxPlayers && !existingPlayer) {
             socket.emit('joinError', 'La sala está llena.');
             return;
         }
 
-        const currentCode = socketLobbyMap.get(socket.id);
-        if (currentCode && currentCode !== normalizedCode) {
-            socket.leave(currentCode);
-        }
+        bindSocketToLobby(socket, normalizedCode);
+        clearReconnectTimer(normalizedClientId);
 
-        socket.join(normalizedCode);
-        socketLobbyMap.set(socket.id, normalizedCode);
-
-        const alreadyInLobby = lobby.players.find((p) => p.id === socket.id);
-        if (!alreadyInLobby) {
-            lobby.players.push({ id: socket.id, name: playerName, score: 0 });
+        if (!existingPlayer) {
+            lobby.players.push({ id: normalizedClientId, name: playerName, score: 0, connected: true });
+        } else {
+            existingPlayer.connected = true;
+            if (playerName) {
+                existingPlayer.name = playerName;
+            }
         }
 
         emitLobbyUpdate(normalizedCode);
@@ -161,8 +192,9 @@ io.on('connection', (socket) => {
     socket.on('startGame', ({ code }) => {
         const lobby = lobbies.get(code);
         if (!lobby) return;
-        if (socket.id !== lobby.hostId) return;
+        if (socket.data.clientId !== lobby.hostId) return;
         if (lobby.players.length !== lobby.config.maxPlayers) return;
+        if (!lobby.players.every((player) => player.connected)) return;
 
         initGame(lobby);
         emitLobbyUpdate(code);
@@ -174,7 +206,7 @@ io.on('connection', (socket) => {
         if (!lobby || !lobby.gameStarted) return;
 
         const player = lobby.players[lobby.currentPlayerIndex];
-        if (!lobby.canPlay || !player || player.id !== socket.id) return;
+        if (!lobby.canPlay || !player || player.id !== socket.data.clientId) return;
 
         const card = lobby.cards.find((c) => c.coord === coord);
         if (!card || card.isFlipped || card.isMatched) return;
@@ -212,7 +244,7 @@ io.on('connection', (socket) => {
     socket.on('requestReset', () => {
         const code = socketLobbyMap.get(socket.id);
         const lobby = lobbies.get(code);
-        if (!lobby || socket.id !== lobby.hostId) return;
+        if (!lobby || socket.data.clientId !== lobby.hostId) return;
 
         io.to(code).emit('goToMenu');
         lobby.gameStarted = false;
@@ -230,22 +262,65 @@ io.on('connection', (socket) => {
         const lobby = lobbies.get(code);
         if (!lobby) return;
 
-        if (socket.id === lobby.hostId) {
-            io.to(code).emit('goToMenu');
-            lobbies.delete(code);
-            return;
-        }
+        const clientId = socket.data.clientId;
+        if (!clientId) return;
 
-        const playerIndex = lobby.players.findIndex((p) => p.id === socket.id);
+        const playerIndex = lobby.players.findIndex((p) => p.id === clientId);
         if (playerIndex !== -1) {
-            lobby.players.splice(playerIndex, 1);
-            if (lobby.currentPlayerIndex >= lobby.players.length) {
-                lobby.currentPlayerIndex = 0;
-            }
+            lobby.players[playerIndex].connected = false;
             emitLobbyUpdate(code);
         }
 
+        clearReconnectTimer(clientId);
+        const timeout = setTimeout(() => {
+            reconnectTimers.delete(clientId);
+
+            const activeLobby = lobbies.get(code);
+            if (!activeLobby) return;
+
+            if (activeLobby.hostId === clientId) {
+                io.to(code).emit('goToMenu');
+                lobbies.delete(code);
+                return;
+            }
+
+            const activePlayerIndex = activeLobby.players.findIndex((p) => p.id === clientId);
+            if (activePlayerIndex !== -1 && !activeLobby.players[activePlayerIndex].connected) {
+                activeLobby.players.splice(activePlayerIndex, 1);
+                if (activeLobby.currentPlayerIndex >= activeLobby.players.length) {
+                    activeLobby.currentPlayerIndex = 0;
+                }
+                emitLobbyUpdate(code);
+            }
+
+            cleanUpLobby(code);
+        }, RECONNECT_GRACE_MS);
+
+        reconnectTimers.set(clientId, timeout);
+
         cleanUpLobby(code);
+    });
+
+    socket.on('registerClient', ({ clientId, role, code, name }) => {
+        const normalizedClientId = String(clientId || '').trim();
+        if (!normalizedClientId) return;
+
+        socket.data.clientId = normalizedClientId;
+
+        if (role === 'mobile' && code && name) {
+            socket.emit('resumeJoin', { code, name, clientId: normalizedClientId });
+            return;
+        }
+
+        if (role === 'host' && code) {
+            const lobby = lobbies.get(code);
+            if (lobby && lobby.hostId === normalizedClientId) {
+                bindSocketToLobby(socket, code);
+                clearReconnectTimer(normalizedClientId);
+                socket.emit('hostRejoined', { code });
+                emitLobbyUpdate(code);
+            }
+        }
     });
 });
 

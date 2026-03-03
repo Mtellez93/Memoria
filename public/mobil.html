@@ -36,13 +36,31 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
+        const PLAYER_STORAGE_KEY = 'memoria-player-id';
+        const PLAYER_NAME_STORAGE_KEY = 'memoria-player-name';
+        const LOBBY_CODE_STORAGE_KEY = 'memoria-lobby-code';
+        const playerClientId = localStorage.getItem(PLAYER_STORAGE_KEY) || crypto.randomUUID();
+        localStorage.setItem(PLAYER_STORAGE_KEY, playerClientId);
         const params = new URLSearchParams(window.location.search);
-        let myName = '';
-        let lobbyCode = params.get('code') || '';
+        let myName = localStorage.getItem(PLAYER_NAME_STORAGE_KEY) || '';
+        let lobbyCode = params.get('code') || localStorage.getItem(LOBBY_CODE_STORAGE_KEY) || '';
 
         if (lobbyCode) {
             document.getElementById('lobby-code-input').value = lobbyCode.toUpperCase();
+            localStorage.setItem(LOBBY_CODE_STORAGE_KEY, lobbyCode.toUpperCase());
         }
+        if (myName) {
+            document.getElementById('player-name').value = myName;
+        }
+
+        socket.on('connect', () => {
+            socket.emit('registerClient', {
+                role: 'mobile',
+                clientId: playerClientId,
+                code: lobbyCode,
+                name: myName
+            });
+        });
 
         function unirseAlJuego() {
             const code = document.getElementById('lobby-code-input').value.trim().toUpperCase();
@@ -51,8 +69,14 @@
 
             lobbyCode = code;
             myName = name;
-            socket.emit('joinLobby', { code, name });
+            localStorage.setItem(PLAYER_NAME_STORAGE_KEY, myName);
+            localStorage.setItem(LOBBY_CODE_STORAGE_KEY, lobbyCode);
+            socket.emit('joinLobby', { code, name, clientId: playerClientId });
         }
+
+        socket.on('resumeJoin', ({ code, name, clientId }) => {
+            socket.emit('joinLobby', { code, name, clientId });
+        });
 
         socket.on('joinError', (message) => {
             const el = document.getElementById('join-error');
@@ -64,7 +88,7 @@
             if (!state || state.code !== lobbyCode) return;
             document.getElementById('join-error').classList.add('hidden');
 
-            const playerExists = state.players.some((player) => player.id === socket.id);
+            const playerExists = state.players.some((player) => player.id === playerClientId);
             if (!playerExists) return;
 
             document.getElementById('join-menu').classList.add('hidden');
@@ -82,7 +106,7 @@
 
         function renderMobile(state) {
             const pActual = state.players[state.currentPlayerIndex];
-            const esMiTurno = pActual && pActual.id === socket.id;
+            const esMiTurno = pActual && pActual.id === playerClientId;
 
             document.getElementById('turn-indicator').innerHTML = `
                 <h3>${myName}</h3>
