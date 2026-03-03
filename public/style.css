@@ -19,12 +19,18 @@ html, body {
 .option { margin: 15px 0; text-align: left; }
 select, input { width: 100%; padding: 12px; border-radius: 8px; background: #252525; color: white; border: 1px solid #444; }
 .btn-start { width: 100%; padding: 15px; background: #27ae60; color: white; border: none; border-radius: 8px; font-weight: bold; }
+.btn-start:disabled { opacity: 0.5; cursor: not-allowed; }
+.lobby-code { letter-spacing: 4px; font-size: 2rem; margin: 8px 0 12px; }
+.qr-image { width: 220px; height: 220px; max-width: 100%; border-radius: 10px; margin: 10px auto; display: block; background: #fff; }
+.lobby-player-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 14px 0; }
+.join-error { color: #ff7b7b; margin: 10px 0; }
 
 /* TV Styles */
 .scoreboard { display: flex; justify-content: center; gap: 10px; height: 10vh; align-items: center; }
 .player-pill { padding: 5px 15px; background: #222; border-radius: 50px; font-size: 2vh; }
 .player-pill.active { background: #ffcc00; color: black; border-color: white; }
 .grid-board { display: grid; gap: 5px; height: 85vh; padding: 10px; margin: 0 auto; }
+.label-ref { text-align: center; color: #bbb; font-weight: 600; }
 .card { height: 12vh; aspect-ratio: 3/4; perspective: 1000px; }
 .card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.5s; transform-style: preserve-3d; }
 .card.flipped .card-inner { transform: rotateY(180deg); }

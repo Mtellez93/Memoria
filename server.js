@@ -9,15 +9,8 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-let gameState = {
-    cards: [],
-    players: [],
-    currentPlayerIndex: 0,
-    gameStarted: false,
-    canPlay: true,
-    flippedCards: [],
-    config: { rows: 4, cols: 4, maxPlayers: 1 }
-};
+const lobbies = new Map();
+const socketLobbyMap = new Map();
 
 const cardImages = [
     "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/1.jpg", "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/10.jpg",
@@ -31,85 +24,228 @@ const cardImages = [
     "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/9.jpg", "https://raw.githubusercontent.com/Mtellez93/Memoria/main/public/img/18.jpg"
 ];
 
-function initGame(rows, cols, maxPlayers) {
-    const totalCards = rows * cols;
+function generateLobbyCode() {
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+        code += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    return lobbies.has(code) ? generateLobbyCode() : code;
+}
+
+function createLobby(config, hostId) {
+    const code = generateLobbyCode();
+    const rows = parseInt(config.rows, 10);
+    const cols = parseInt(config.cols, 10);
+    const maxPlayers = parseInt(config.players, 10);
+
+    lobbies.set(code, {
+        code,
+        hostId,
+        cards: [],
+        players: [],
+        currentPlayerIndex: 0,
+        gameStarted: false,
+        canPlay: true,
+        flippedCards: [],
+        config: { rows, cols, maxPlayers }
+    });
+
+    return code;
+}
+
+function initGame(lobby) {
+    const totalCards = lobby.config.rows * lobby.config.cols;
     const pairsNeeded = totalCards / 2;
-    let selectedImages = cardImages.slice(0, pairsNeeded);
-    let cardsDeck = [...selectedImages, ...selectedImages]
+    const selectedImages = cardImages.slice(0, pairsNeeded);
+    lobby.cards = [...selectedImages, ...selectedImages]
         .sort(() => Math.random() - 0.5)
         .map((url, i) => ({
             id: i,
-            url: url,
-            coord: `${String.fromCharCode(65 + (i % cols))}${Math.floor(i / cols) + 1}`,
+            url,
+            coord: `${String.fromCharCode(65 + (i % lobby.config.cols))}${Math.floor(i / lobby.config.cols) + 1}`,
             isFlipped: false,
             isMatched: false
         }));
 
-    gameState = {
-        cards: cardsDeck,
-        players: [],
-        currentPlayerIndex: 0,
-        gameStarted: true,
-        canPlay: true,
-        flippedCards: [],
-        config: { rows, cols, maxPlayers }
-    };
+    lobby.currentPlayerIndex = 0;
+    lobby.gameStarted = true;
+    lobby.canPlay = true;
+    lobby.flippedCards = [];
+
+    lobby.players.forEach((player) => {
+        player.score = 0;
+    });
+}
+
+function emitLobbyUpdate(code) {
+    const lobby = lobbies.get(code);
+    if (!lobby) return;
+    io.to(code).emit('gameUpdate', {
+        code: lobby.code,
+        cards: lobby.cards,
+        players: lobby.players,
+        currentPlayerIndex: lobby.currentPlayerIndex,
+        gameStarted: lobby.gameStarted,
+        canPlay: lobby.canPlay,
+        flippedCards: lobby.flippedCards,
+        config: lobby.config
+    });
+}
+
+function cleanUpLobby(code) {
+    const lobby = lobbies.get(code);
+    if (!lobby) return;
+    if (lobby.players.length === 0 || lobby.hostId === null) {
+        lobbies.delete(code);
+    }
 }
 
 io.on('connection', (socket) => {
-    socket.emit('gameUpdate', gameState);
+    socket.on('createLobby', (config) => {
+        const existingCode = socketLobbyMap.get(socket.id);
+        if (existingCode) {
+            socket.leave(existingCode);
+            socketLobbyMap.delete(socket.id);
+        }
 
-    socket.on('startGame', (config) => {
-        initGame(parseInt(config.rows), parseInt(config.cols), parseInt(config.players));
-        io.emit('gameUpdate', gameState);
+        const code = createLobby(config, socket.id);
+        socket.join(code);
+        socketLobbyMap.set(socket.id, code);
+
+        socket.emit('lobbyCreated', { code });
+        emitLobbyUpdate(code);
     });
 
-    socket.on('joinGame', (name) => {
-        if (gameState.players.length < gameState.config.maxPlayers) {
-            gameState.players.push({ id: socket.id, name: name, score: 0 });
-            io.emit('gameUpdate', gameState);
+    socket.on('joinLobby', ({ code, name }) => {
+        const normalizedCode = String(code || '').trim().toUpperCase();
+        const playerName = String(name || '').trim();
+        const lobby = lobbies.get(normalizedCode);
+
+        if (!lobby) {
+            socket.emit('joinError', 'Código de sala inválido.');
+            return;
         }
+
+        if (lobby.gameStarted) {
+            socket.emit('joinError', 'La partida ya comenzó.');
+            return;
+        }
+
+        if (!playerName) {
+            socket.emit('joinError', 'Escribe tu nombre.');
+            return;
+        }
+
+        if (lobby.players.length >= lobby.config.maxPlayers) {
+            socket.emit('joinError', 'La sala está llena.');
+            return;
+        }
+
+        const currentCode = socketLobbyMap.get(socket.id);
+        if (currentCode && currentCode !== normalizedCode) {
+            socket.leave(currentCode);
+        }
+
+        socket.join(normalizedCode);
+        socketLobbyMap.set(socket.id, normalizedCode);
+
+        const alreadyInLobby = lobby.players.find((p) => p.id === socket.id);
+        if (!alreadyInLobby) {
+            lobby.players.push({ id: socket.id, name: playerName, score: 0 });
+        }
+
+        emitLobbyUpdate(normalizedCode);
+    });
+
+    socket.on('startGame', ({ code }) => {
+        const lobby = lobbies.get(code);
+        if (!lobby) return;
+        if (socket.id !== lobby.hostId) return;
+        if (lobby.players.length !== lobby.config.maxPlayers) return;
+
+        initGame(lobby);
+        emitLobbyUpdate(code);
     });
 
     socket.on('flipCard', (coord) => {
-        const player = gameState.players[gameState.currentPlayerIndex];
-        if (!gameState.canPlay || !player || player.id !== socket.id) return;
+        const code = socketLobbyMap.get(socket.id);
+        const lobby = lobbies.get(code);
+        if (!lobby || !lobby.gameStarted) return;
 
-        const card = gameState.cards.find(c => c.coord === coord);
+        const player = lobby.players[lobby.currentPlayerIndex];
+        if (!lobby.canPlay || !player || player.id !== socket.id) return;
+
+        const card = lobby.cards.find((c) => c.coord === coord);
         if (!card || card.isFlipped || card.isMatched) return;
 
         card.isFlipped = true;
-        gameState.flippedCards.push(card);
-        io.emit('gameUpdate', gameState);
+        lobby.flippedCards.push(card);
+        emitLobbyUpdate(code);
 
-        if (gameState.flippedCards.length === 2) {
-            gameState.canPlay = false;
-            const [c1, c2] = gameState.flippedCards;
+        if (lobby.flippedCards.length === 2) {
+            lobby.canPlay = false;
+            const [c1, c2] = lobby.flippedCards;
 
             if (c1.url === c2.url) {
                 c1.isMatched = c2.isMatched = true;
                 player.score++;
-                gameState.flippedCards = [];
-                gameState.canPlay = true;
-                if (gameState.cards.every(c => c.isMatched)) {
-                    io.emit('gameOver', gameState.players);
+                lobby.flippedCards = [];
+                lobby.canPlay = true;
+                if (lobby.cards.every((c) => c.isMatched)) {
+                    io.to(code).emit('gameOver', lobby.players);
                 }
             } else {
                 setTimeout(() => {
                     c1.isFlipped = c2.isFlipped = false;
-                    gameState.flippedCards = [];
-                    gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
-                    gameState.canPlay = true;
-                    io.emit('gameUpdate', gameState);
+                    lobby.flippedCards = [];
+                    lobby.currentPlayerIndex = (lobby.currentPlayerIndex + 1) % lobby.players.length;
+                    lobby.canPlay = true;
+                    emitLobbyUpdate(code);
                 }, 1500);
             }
-            io.emit('gameUpdate', gameState);
+
+            emitLobbyUpdate(code);
         }
     });
 
     socket.on('requestReset', () => {
-        gameState.gameStarted = false;
-        io.emit('goToMenu');
+        const code = socketLobbyMap.get(socket.id);
+        const lobby = lobbies.get(code);
+        if (!lobby || socket.id !== lobby.hostId) return;
+
+        io.to(code).emit('goToMenu');
+        lobby.gameStarted = false;
+        lobby.cards = [];
+        lobby.players = [];
+        lobby.flippedCards = [];
+        emitLobbyUpdate(code);
+    });
+
+    socket.on('disconnect', () => {
+        const code = socketLobbyMap.get(socket.id);
+        socketLobbyMap.delete(socket.id);
+        if (!code) return;
+
+        const lobby = lobbies.get(code);
+        if (!lobby) return;
+
+        if (socket.id === lobby.hostId) {
+            io.to(code).emit('goToMenu');
+            lobbies.delete(code);
+            return;
+        }
+
+        const playerIndex = lobby.players.findIndex((p) => p.id === socket.id);
+        if (playerIndex !== -1) {
+            lobby.players.splice(playerIndex, 1);
+            if (lobby.currentPlayerIndex >= lobby.players.length) {
+                lobby.currentPlayerIndex = 0;
+            }
+            emitLobbyUpdate(code);
+        }
+
+        cleanUpLobby(code);
     });
 });
 

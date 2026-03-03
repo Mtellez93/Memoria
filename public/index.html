@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <title>Memoria Tablero</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-    <div id="setup-menu" class="menu-container hidden">
+    <div id="setup-menu" class="menu-container">
         <h1>CONFIGURAR</h1>
         <div class="option">
             <label>Tablero:</label>
@@ -25,13 +24,17 @@
                 <option value="3">3</option><option value="4">4</option>
             </select>
         </div>
-        <button class="btn-start" onclick="enviarConfiguracion()">CREAR SALA</button>
+        <button class="btn-start" onclick="crearSala()">CREAR SALA</button>
     </div>
 
-    <div id="name-menu" class="menu-container hidden">
-        <h1>TU NOMBRE</h1>
-        <input type="text" id="player-name" placeholder="Tu nombre..." maxlength="12">
-        <button class="btn-start" style="margin-top:15px" onclick="unirseAlJuego()">UNIRSE</button>
+    <div id="lobby-menu" class="menu-container hidden">
+        <h1>SALA</h1>
+        <p>Código de lobby:</p>
+        <h2 id="lobby-code" class="lobby-code"></h2>
+        <img id="qr-image" class="qr-image" alt="QR de sala">
+        <p>Abre <strong>/mobil.html</strong> y escribe el código para unirte.</p>
+        <div id="player-list" class="lobby-player-list"></div>
+        <button id="btn-start-game" class="btn-start" onclick="iniciarPartida()" disabled>INICIAR PARTIDA</button>
     </div>
 
     <div id="view-tv" class="hidden">
@@ -39,62 +42,55 @@
         <div id="board" class="grid-board"></div>
         <div id="winner-overlay" class="winner-msg hidden">
             <h2 id="winner-text"></h2>
-            <p>Reinicia desde el móvil</p>
-        </div>
-    </div>
-
-    <div id="view-mobile" class="hidden mobile-wrapper">
-        <header id="turn-indicator"></header>
-        
-        <main class="scroll-container">
-            <div id="controls" class="mobile-controls"></div>
-        </main>
-        
-        <footer class="mobile-footer">
+            <p>Reinicia la sala desde este tablero</p>
             <button class="btn-reset" onclick="resetearTodo()">Reiniciar Todo</button>
-        </footer>
+        </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        let myName = "";
+        let lobbyCode = '';
 
-        function enviarConfiguracion() {
+        function crearSala() {
             const size = document.getElementById('grid-size').value.split('x');
-            socket.emit('startGame', { rows: size[1], cols: size[0], players: document.getElementById('player-count').value });
+            socket.emit('createLobby', { rows: size[1], cols: size[0], players: document.getElementById('player-count').value });
         }
 
-        function unirseAlJuego() {
-            const name = document.getElementById('player-name').value.trim();
-            if (name) { myName = name; socket.emit('joinGame', name); document.getElementById('name-menu').classList.add('hidden'); }
+        function iniciarPartida() {
+            if (!lobbyCode) return;
+            socket.emit('startGame', { code: lobbyCode });
         }
 
-        function resetearTodo() { socket.emit('requestReset'); }
+        function resetearTodo() {
+            socket.emit('requestReset');
+        }
+
+        socket.on('lobbyCreated', ({ code }) => {
+            lobbyCode = code;
+            document.getElementById('setup-menu').classList.add('hidden');
+            document.getElementById('lobby-menu').classList.remove('hidden');
+            document.getElementById('lobby-code').innerText = code;
+
+            const mobileUrl = `${window.location.origin}/mobil.html?code=${encodeURIComponent(code)}`;
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(mobileUrl)}`;
+            document.getElementById('qr-image').src = qrUrl;
+        });
 
         socket.on('gameUpdate', (state) => {
+            if (!state || state.code !== lobbyCode) return;
+
             if (!state.gameStarted) {
-                if (isMobile) {
-                    document.getElementById('setup-menu').classList.remove('hidden');
-                    document.getElementById('view-mobile').classList.add('hidden');
-                    document.getElementById('name-menu').classList.add('hidden');
-                } else {
-                    document.getElementById('view-tv').classList.add('hidden');
-                }
+                const canStart = state.players.length === state.config.maxPlayers;
+                document.getElementById('btn-start-game').disabled = !canStart;
+                document.getElementById('player-list').innerHTML =
+                    state.players.map((p) => `<div class="player-pill">${p.name}</div>`).join('') || '<p>Aún no hay jugadores.</p>';
                 return;
             }
-            document.getElementById('setup-menu').classList.add('hidden');
-            if (isMobile) {
-                if (!myName) document.getElementById('name-menu').classList.remove('hidden');
-                else { 
-                    document.getElementById('view-mobile').classList.remove('hidden'); 
-                    renderMobile(state); 
-                }
-            } else {
-                document.getElementById('view-tv').classList.remove('hidden');
-                renderTV(state);
-            }
+
+            document.getElementById('lobby-menu').classList.add('hidden');
+            document.getElementById('view-tv').classList.remove('hidden');
+            renderTV(state);
         });
 
         function renderTV(state) {
@@ -110,40 +106,13 @@
             });
         }
 
-        function renderMobile(state) {
-            const pActual = state.players[state.currentPlayerIndex];
-            const esMiTurno = pActual && pActual.id === socket.id;
-            
-            document.getElementById('turn-indicator').innerHTML = `
-                <h3>${myName}</h3>
-                <h2 class="${esMiTurno ? 'my-turn' : 'wait-turn'}">
-                    ${esMiTurno ? "¡TU TURNO!" : (pActual ? pActual.name : "...")}
-                </h2>`;
-            
-            const controls = document.getElementById('controls');
-            controls.innerHTML = '';
-            controls.style.gridTemplateColumns = `repeat(${state.config.cols}, 1fr)`;
-            
-            state.cards.forEach(card => {
-                const btn = document.createElement('button');
-                btn.innerText = card.coord;
-                btn.className = `coord-btn ${card.isMatched ? 'invisible-btn' : ''}`;
-                btn.disabled = !esMiTurno || card.isFlipped || !state.canPlay;
-                btn.onclick = () => socket.emit('flipCard', card.coord);
-                controls.appendChild(btn);
-            });
-        }
-
         socket.on('gameOver', (players) => {
-            if (!isMobile) {
-                const winner = [...players].sort((a, b) => b.score - a.score)[0];
-                document.getElementById('winner-text').innerText = `¡GANADOR: ${winner.name.toUpperCase()}!`;
-                document.getElementById('winner-overlay').classList.remove('hidden');
-            }
+            const winner = [...players].sort((a, b) => b.score - a.score)[0];
+            document.getElementById('winner-text').innerText = `¡GANADOR: ${winner.name.toUpperCase()}!`;
+            document.getElementById('winner-overlay').classList.remove('hidden');
         });
 
         socket.on('goToMenu', () => {
-            myName = "";
             window.location.reload();
         });
     </script>
