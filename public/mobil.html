@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Memoria Móvil</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="join-menu" class="menu-container">
+        <h1>UNIRSE</h1>
+        <div class="option">
+            <label>Código de lobby</label>
+            <input type="text" id="lobby-code-input" maxlength="6" placeholder="ABC123">
+        </div>
+        <div class="option">
+            <label>Tu nombre</label>
+            <input type="text" id="player-name" maxlength="12" placeholder="Tu nombre...">
+        </div>
+        <p id="join-error" class="join-error hidden"></p>
+        <button class="btn-start" onclick="unirseAlJuego()">UNIRSE</button>
+    </div>
+
+    <div id="waiting-menu" class="menu-container hidden">
+        <h2>Esperando al inicio...</h2>
+        <p>El anfitrión iniciará la partida cuando todos estén conectados.</p>
+    </div>
+
+    <div id="view-mobile" class="hidden mobile-wrapper">
+        <header id="turn-indicator"></header>
+        <main class="scroll-container">
+            <div id="controls" class="mobile-controls"></div>
+        </main>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const params = new URLSearchParams(window.location.search);
+        let myName = '';
+        let lobbyCode = params.get('code') || '';
+
+        if (lobbyCode) {
+            document.getElementById('lobby-code-input').value = lobbyCode.toUpperCase();
+        }
+
+        function unirseAlJuego() {
+            const code = document.getElementById('lobby-code-input').value.trim().toUpperCase();
+            const name = document.getElementById('player-name').value.trim();
+            if (!code || !name) return;
+
+            lobbyCode = code;
+            myName = name;
+            socket.emit('joinLobby', { code, name });
+        }
+
+        socket.on('joinError', (message) => {
+            const el = document.getElementById('join-error');
+            el.innerText = message;
+            el.classList.remove('hidden');
+        });
+
+        socket.on('gameUpdate', (state) => {
+            if (!state || state.code !== lobbyCode) return;
+            document.getElementById('join-error').classList.add('hidden');
+
+            const playerExists = state.players.some((player) => player.id === socket.id);
+            if (!playerExists) return;
+
+            document.getElementById('join-menu').classList.add('hidden');
+
+            if (!state.gameStarted) {
+                document.getElementById('waiting-menu').classList.remove('hidden');
+                document.getElementById('view-mobile').classList.add('hidden');
+                return;
+            }
+
+            document.getElementById('waiting-menu').classList.add('hidden');
+            document.getElementById('view-mobile').classList.remove('hidden');
+            renderMobile(state);
+        });
+
+        function renderMobile(state) {
+            const pActual = state.players[state.currentPlayerIndex];
+            const esMiTurno = pActual && pActual.id === socket.id;
+
+            document.getElementById('turn-indicator').innerHTML = `
+                <h3>${myName}</h3>
+                <h2 class="${esMiTurno ? 'my-turn' : 'wait-turn'}">
+                    ${esMiTurno ? '¡TU TURNO!' : (pActual ? `Turno de ${pActual.name}` : '...')}
+                </h2>`;
+
+            const controls = document.getElementById('controls');
+            controls.innerHTML = '';
+            controls.style.gridTemplateColumns = `repeat(${state.config.cols}, 1fr)`;
+
+            state.cards.forEach((card) => {
+                const btn = document.createElement('button');
+                btn.innerText = card.coord;
+                btn.className = `coord-btn ${card.isMatched ? 'invisible-btn' : ''}`;
+                btn.disabled = !esMiTurno || card.isFlipped || !state.canPlay;
+                btn.onclick = () => socket.emit('flipCard', card.coord);
+                controls.appendChild(btn);
+            });
+        }
+
+        socket.on('goToMenu', () => {
+            window.location.reload();
+        });
+    </script>
+</body>
+</html>
